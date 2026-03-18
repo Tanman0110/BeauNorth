@@ -28,6 +28,8 @@ namespace StoreApi.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
 
         public ICollection<Order> Orders { get; set; } = new List<Order>();
         public ICollection<Cart> Carts { get; set; } = new List<Cart>();

@@ -7,11 +7,11 @@ namespace StoreApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CategoriesController : ControllerBase
+    public class CategoryController : ControllerBase
     {
         private readonly AppDbContext _context;
 
-        public CategoriesController(AppDbContext context)
+        public CategoryController(AppDbContext context)
         {
             _context = context;
         }

@@ -78,7 +78,7 @@ namespace StoreApi.Data
                 .HasMany(u => u.Orders)
                 .WithOne(o => o.User)
                 .HasForeignKey(o => o.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Carts)

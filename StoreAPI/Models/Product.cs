@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace StoreApi.Models
 {
@@ -39,7 +40,9 @@ namespace StoreApi.Models
 
         public Category? Category { get; set; }
 
+        [JsonIgnore]
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+        [JsonIgnore]
         public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
 }
