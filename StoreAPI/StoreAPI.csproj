@@ -10,12 +10,16 @@
   <ItemGroup>
     <Compile Remove="DTOs\**" />
     <Compile Remove="Interfaces\**" />
+    <Compile Remove="Services\**" />
     <Content Remove="DTOs\**" />
     <Content Remove="Interfaces\**" />
+    <Content Remove="Services\**" />
     <EmbeddedResource Remove="DTOs\**" />
     <EmbeddedResource Remove="Interfaces\**" />
+    <EmbeddedResource Remove="Services\**" />
     <None Remove="DTOs\**" />
     <None Remove="Interfaces\**" />
+    <None Remove="Services\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,10 +35,6 @@
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>
