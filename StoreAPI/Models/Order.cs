@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace StoreApi.Models
 {
@@ -23,7 +24,7 @@ namespace StoreApi.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
+        [JsonIgnore]
         public User? User { get; set; }
 
         public ShippingAddress? ShippingAddress { get; set; }

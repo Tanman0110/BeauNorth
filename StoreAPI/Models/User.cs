@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace StoreApi.Models
 {
@@ -30,8 +31,9 @@ namespace StoreApi.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
-
+        [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+        [JsonIgnore]
         public ICollection<Cart> Carts { get; set; } = new List<Cart>();
     }
 }

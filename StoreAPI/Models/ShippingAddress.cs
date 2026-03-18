@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace StoreApi.Models
 {
@@ -34,7 +35,7 @@ namespace StoreApi.Models
         [Required]
         [MaxLength(100)]
         public string Country { get; set; } = string.Empty;
-
+        [JsonIgnore]
         public Order? Order { get; set; }
     }
 }
