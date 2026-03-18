@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace StoreApi.Models
 {
@@ -27,7 +28,7 @@ namespace StoreApi.Models
 
         public DateTime? SubmittedAt { get; set; }
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
+        [JsonIgnore]
         public Order? Order { get; set; }
     }
 }

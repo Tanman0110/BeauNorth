@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace StoreApi.Models
 {
@@ -25,7 +26,7 @@ namespace StoreApi.Models
 
         [MaxLength(50)]
         public string? ColorSelected { get; set; }
-
+        [JsonIgnore]
         public Order? Order { get; set; }
         public Product? Product { get; set; }
     }

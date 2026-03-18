@@ -8,17 +8,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="DTOs\**" />
     <Compile Remove="Interfaces\**" />
-    <Content Remove="DTOs\**" />
+    <Compile Remove="Services\**" />
     <Content Remove="Interfaces\**" />
-    <EmbeddedResource Remove="DTOs\**" />
+    <Content Remove="Services\**" />
     <EmbeddedResource Remove="Interfaces\**" />
-    <None Remove="DTOs\**" />
+    <EmbeddedResource Remove="Services\**" />
     <None Remove="Interfaces\**" />
+    <None Remove="Services\**" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
@@ -31,10 +33,6 @@
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>
