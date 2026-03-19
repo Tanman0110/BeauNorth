@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreApi.Data;
-using StoreApi.Models;
+using StoreAPI.DTOs.Products;
+using StoreAPI.Models;
 
-namespace StoreApi.Controllers
+namespace StoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -17,6 +19,7 @@ namespace StoreApi.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetProducts()
         {
             var products = await _context.Products
@@ -28,6 +31,7 @@ namespace StoreApi.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetProduct(int id)
         {
             var product = await _context.Products
@@ -42,24 +46,42 @@ namespace StoreApi.Controllers
             return Ok(product);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> CreateProduct(Product product)
+        public async Task<IActionResult> CreateProduct(CreateProductDto request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var categoryExists = await _context.Categories
-                .AnyAsync(c => c.CategoryId == product.CategoryId);
-
+            var categoryExists = await _context.Categories.AnyAsync(c => c.CategoryId == request.CategoryId);
             if (!categoryExists)
             {
                 return BadRequest("Invalid CategoryId.");
             }
 
-            product.CreatedAt = DateTime.UtcNow;
-            product.UpdatedAt = DateTime.UtcNow;
+            var skuExists = await _context.Products.AnyAsync(p => p.Sku == request.Sku);
+            if (skuExists)
+            {
+                return BadRequest("SKU already exists.");
+            }
+
+            var product = new Product
+            {
+                CategoryId = request.CategoryId,
+                Name = request.Name.Trim(),
+                Description = request.Description?.Trim(),
+                Price = request.Price,
+                ImageUrl = request.ImageUrl?.Trim(),
+                SizeOptions = request.SizeOptions?.Trim(),
+                ColorOptions = request.ColorOptions?.Trim(),
+                StockQuantity = request.StockQuantity,
+                Sku = request.Sku.Trim().ToUpper(),
+                IsActive = request.IsActive,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
@@ -67,46 +89,51 @@ namespace StoreApi.Controllers
             return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, product);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(int id, Product updatedProduct)
+        public async Task<IActionResult> UpdateProduct(int id, UpdateProductDto request)
         {
-            if (id != updatedProduct.ProductId)
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Product ID mismatch.");
+                return BadRequest(ModelState);
             }
 
-            var existingProduct = await _context.Products.FindAsync(id);
-
-            if (existingProduct == null)
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
             {
                 return NotFound();
             }
 
-            var categoryExists = await _context.Categories
-                .AnyAsync(c => c.CategoryId == updatedProduct.CategoryId);
-
+            var categoryExists = await _context.Categories.AnyAsync(c => c.CategoryId == request.CategoryId);
             if (!categoryExists)
             {
                 return BadRequest("Invalid CategoryId.");
             }
 
-            existingProduct.Name = updatedProduct.Name;
-            existingProduct.Description = updatedProduct.Description;
-            existingProduct.Price = updatedProduct.Price;
-            existingProduct.ImageUrl = updatedProduct.ImageUrl;
-            existingProduct.SizeOptions = updatedProduct.SizeOptions;
-            existingProduct.ColorOptions = updatedProduct.ColorOptions;
-            existingProduct.StockQuantity = updatedProduct.StockQuantity;
-            existingProduct.Sku = updatedProduct.Sku;
-            existingProduct.IsActive = updatedProduct.IsActive;
-            existingProduct.CategoryId = updatedProduct.CategoryId;
-            existingProduct.UpdatedAt = DateTime.UtcNow;
+            var skuExists = await _context.Products.AnyAsync(p => p.Sku == request.Sku && p.ProductId != id);
+            if (skuExists)
+            {
+                return BadRequest("SKU already exists.");
+            }
+
+            product.CategoryId = request.CategoryId;
+            product.Name = request.Name.Trim();
+            product.Description = request.Description?.Trim();
+            product.Price = request.Price;
+            product.ImageUrl = request.ImageUrl?.Trim();
+            product.SizeOptions = request.SizeOptions?.Trim();
+            product.ColorOptions = request.ColorOptions?.Trim();
+            product.StockQuantity = request.StockQuantity;
+            product.Sku = request.Sku.Trim().ToUpper();
+            product.IsActive = request.IsActive;
+            product.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
@@ -117,7 +144,9 @@ namespace StoreApi.Controllers
                 return NotFound();
             }
 
-            _context.Products.Remove(product);
+            product.IsActive = false;
+            product.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
 
             return NoContent();

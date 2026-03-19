@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreApi.Data;
-using StoreApi.Models;
+using StoreAPI.Models;
 
 namespace StoreApi.Controllers
 {

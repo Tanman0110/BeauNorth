@@ -1,12 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 
-namespace StoreAPI.Models
+namespace StoreAPI.DTOs.Products
 {
-    public class Product
+    public class CreateProductDto
     {
-        public int ProductId { get; set; }
-
+        [Required]
         public int CategoryId { get; set; }
 
         [Required]
@@ -34,20 +32,9 @@ namespace StoreAPI.Models
 
         [Required]
         [MaxLength(100)]
-        [RegularExpression(@"^[A-Z0-9\-]+$", ErrorMessage = "SKU can only contain uppercase letters, numbers, and hyphens.")]
+        [RegularExpression(@"^[A-Z0-9\-]+$")]
         public string Sku { get; set; } = string.Empty;
 
         public bool IsActive { get; set; } = true;
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        public Category? Category { get; set; }
-
-        [JsonIgnore]
-        public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
-
-        [JsonIgnore]
-        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using StoreApi.Models;
+using StoreAPI.Models;
 
 namespace StoreApi.Data
 {
@@ -34,6 +34,10 @@ namespace StoreApi.Data
 
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.OrderNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<Category>()
+                .HasIndex(c => c.Name)
                 .IsUnique();
 
             modelBuilder.Entity<Product>()

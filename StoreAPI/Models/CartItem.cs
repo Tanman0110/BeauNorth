@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace StoreApi.Models
+namespace StoreAPI.Models
 {
     public class CartItem
     {
@@ -9,9 +9,13 @@ namespace StoreApi.Models
 
         public int CartId { get; set; }
         public int ProductId { get; set; }
-        
+
+        [Range(1, 100)]
         public int Quantity { get; set; }
+
+        [Range(typeof(decimal), "0.01", "999.99")]
         public decimal UnitPrice { get; set; }
+
         [MaxLength(50)]
         public string? SizeSelected { get; set; }
 
@@ -20,6 +24,7 @@ namespace StoreApi.Models
 
         [JsonIgnore]
         public Cart? Cart { get; set; }
+
         public Product? Product { get; set; }
     }
 }

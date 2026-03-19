@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace StoreApi.Models
+namespace StoreAPI.Models
 {
     public class FulfillmentOrder
     {
@@ -24,10 +24,12 @@ namespace StoreApi.Models
         public string? TrackingNumber { get; set; }
 
         [MaxLength(1000)]
+        [Url]
         public string? TrackingUrl { get; set; }
 
         public DateTime? SubmittedAt { get; set; }
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
         [JsonIgnore]
         public Order? Order { get; set; }
     }

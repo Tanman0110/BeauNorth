@@ -1,12 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreApi.Data;
-using StoreApi.Models;
+using StoreAPI.DTOs.Users;
+using System.Security.Claims;
 
-namespace StoreApi.Controllers
+namespace StoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -16,24 +19,26 @@ namespace StoreApi.Controllers
             _context = context;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetUsers()
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMyAccount()
         {
-            var users = await _context.Users
-                .OrderBy(u => u.LastName)
-                .ThenBy(u => u.FirstName)
-                .ToListAsync();
+            var userId = GetAuthenticatedUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
 
-            return Ok(users);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUser(int id)
-        {
             var user = await _context.Users
-                .Include(u => u.Orders)
-                .Include(u => u.Carts)
-                .FirstOrDefaultAsync(u => u.UserId == id);
+                .Where(u => u.UserId == userId.Value && !u.IsDeleted)
+                .Select(u => new UserResponseDto
+                {
+                    UserId = u.UserId,
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    Email = u.Email,
+                    Role = u.Role
+                })
+                .FirstOrDefaultAsync();
 
             if (user == null)
             {
@@ -43,59 +48,59 @@ namespace StoreApi.Controllers
             return Ok(user);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateUser(User user)
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateMyAccount(UpdateAccountDto request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            user.CreatedAt = DateTime.UtcNow;
-            user.UpdatedAt = DateTime.UtcNow;
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetUser), new { id = user.UserId }, user);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, User updatedUser)
-        {
-            if (!ModelState.IsValid)
+            var userId = GetAuthenticatedUserId();
+            if (userId == null)
             {
-                return BadRequest(ModelState);
+                return Unauthorized();
             }
 
-            if (id != updatedUser.UserId)
-            {
-                return BadRequest("User ID mismatch.");
-            }
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId.Value && !u.IsDeleted);
 
-            var existingUser = await _context.Users.FindAsync(id);
-
-            if (existingUser == null)
+            if (user == null)
             {
                 return NotFound();
             }
 
-            existingUser.FirstName = updatedUser.FirstName;
-            existingUser.LastName = updatedUser.LastName;
-            existingUser.Email = updatedUser.Email;
-            existingUser.PasswordHash = updatedUser.PasswordHash;
-            existingUser.Role = updatedUser.Role;
-            existingUser.UpdatedAt = DateTime.UtcNow;
+            var normalizedEmail = request.Email.Trim().ToLower();
+
+            var emailTaken = await _context.Users.AnyAsync(u =>
+                u.Email == normalizedEmail &&
+                u.UserId != user.UserId &&
+                !u.IsDeleted);
+
+            if (emailTaken)
+            {
+                return BadRequest("That email is already in use.");
+            }
+
+            user.FirstName = request.FirstName.Trim();
+            user.LastName = request.LastName.Trim();
+            user.Email = normalizedEmail;
+            user.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteMyAccount()
         {
-            var user = await _context.Users.FindAsync(id);
+            var userId = GetAuthenticatedUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId.Value && !u.IsDeleted);
 
             if (user == null)
             {
@@ -114,6 +119,18 @@ namespace StoreApi.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        private int? GetAuthenticatedUserId()
+        {
+            var claimValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(claimValue, out var userId))
+            {
+                return null;
+            }
+
+            return userId;
         }
     }
 }

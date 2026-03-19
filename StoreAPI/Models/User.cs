@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace StoreApi.Models
+namespace StoreAPI.Models
 {
     public class User
     {
@@ -16,23 +16,28 @@ namespace StoreApi.Models
         public string LastName { get; set; } = string.Empty;
 
         [Required]
+        [EmailAddress]
         [MaxLength(255)]
         public string Email { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(500)]
+        [JsonIgnore]
         public string PasswordHash { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(50)]
         public string Role { get; set; } = "Customer";
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
         [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+
         [JsonIgnore]
         public ICollection<Cart> Carts { get; set; } = new List<Cart>();
     }

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace StoreApi.Models
+namespace StoreAPI.Models
 {
     public class Cart
     {
@@ -10,6 +10,7 @@ namespace StoreApi.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
         [JsonIgnore]
         public User? User { get; set; }
 

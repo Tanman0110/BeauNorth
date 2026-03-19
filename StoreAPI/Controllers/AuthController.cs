@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StoreApi.Data;
-using StoreApi.Models;
 using StoreAPI.DTOs.Auth;
+using StoreAPI.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -31,21 +32,23 @@ namespace StoreAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            var emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email);
+            var normalizedEmail = request.Email.Trim().ToLower();
+
+            var emailExists = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
             if (emailExists)
             {
                 return BadRequest("An account with that email already exists.");
             }
 
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
-
             var user = new User
             {
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Email = request.Email,
-                PasswordHash = hashedPassword,
+                FirstName = request.FirstName.Trim(),
+                LastName = request.LastName.Trim(),
+                Email = normalizedEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = "Customer",
+                IsDeleted = false,
+                DeletedAt = null,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -55,7 +58,7 @@ namespace StoreAPI.Controllers
 
             var token = GenerateJwtToken(user);
 
-            var response = new AuthResponseDto
+            return Ok(new AuthResponseDto
             {
                 Token = token,
                 UserId = user.UserId,
@@ -63,9 +66,7 @@ namespace StoreAPI.Controllers
                 LastName = user.LastName,
                 Email = user.Email,
                 Role = user.Role
-            };
-
-            return Ok(response);
+            });
         }
 
         [HttpPost("login")]
@@ -76,9 +77,11 @@ namespace StoreAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            var normalizedEmail = request.Email.Trim().ToLower();
 
-            if (user == null)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+
+            if (user == null || user.IsDeleted)
             {
                 return Unauthorized("Invalid email or password.");
             }
@@ -92,7 +95,7 @@ namespace StoreAPI.Controllers
 
             var token = GenerateJwtToken(user);
 
-            var response = new AuthResponseDto
+            return Ok(new AuthResponseDto
             {
                 Token = token,
                 UserId = user.UserId,
@@ -100,27 +103,21 @@ namespace StoreAPI.Controllers
                 LastName = user.LastName,
                 Email = user.Email,
                 Role = user.Role
-            };
-
-            return Ok(response);
+            });
         }
 
+        [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrWhiteSpace(userIdClaim))
-            {
-                return Unauthorized();
-            }
 
             if (!int.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized();
             }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId && !u.IsDeleted);
 
             if (user == null)
             {
@@ -140,15 +137,9 @@ namespace StoreAPI.Controllers
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
-
             var issuer = jwtSettings["Issuer"];
             var audience = jwtSettings["Audience"];
-            var key = jwtSettings["Key"];
-
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                throw new InvalidOperationException("JWT key is not configured.");
-            }
+            var key = jwtSettings["Key"] ?? throw new InvalidOperationException("JWT key not configured.");
 
             var claims = new List<Claim>
             {
@@ -158,14 +149,14 @@ namespace StoreAPI.Controllers
                 new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}")
             };
 
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
+                expires: DateTime.UtcNow.AddHours(12),
                 signingCredentials: credentials
             );
 
