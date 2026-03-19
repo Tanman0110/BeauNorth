@@ -14,30 +14,66 @@
 }
 
 .account-title {
-    margin: 0 0 0.5rem;
+    margin: 0 0 1rem;
     font-size: 2rem;
 }
 
-.account-subtitle {
-    margin: 0 0 2rem;
-    color: #666666;
-}
-
-.account-grid {
+.account-form {
     display: grid;
     gap: 1rem;
+    margin-bottom: 2rem;
 }
 
-.account-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1rem 0;
-    border-bottom: 1px solid #eeeeee;
+.account-section-title {
+    margin: 1rem 0 0.5rem;
+    font-size: 1.25rem;
 }
 
 .account-label {
-    color: #666666;
+    display: grid;
+    gap: 0.4rem;
+    font-weight: 600;
+}
+
+.account-input {
+    padding: 0.85rem 1rem;
+    border: 1px solid #cccccc;
+    border-radius: 10px;
+}
+
+.account-button {
+    padding: 0.9rem 1rem;
+    border: none;
+    border-radius: 10px;
+    background: #111111;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.account-delete-button {
+    padding: 0.9rem 1rem;
+    border: none;
+    border-radius: 10px;
+    background: crimson;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.account-danger-zone {
+    border-top: 1px solid #eeeeee;
+    padding-top: 1rem;
+}
+
+.account-success {
+    color: green;
+    font-weight: 600;
+}
+
+.account-error {
+    color: crimson;
+    font-weight: 600;
 }
 
 .account-status {

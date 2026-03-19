@@ -11,7 +11,8 @@ export default function RegisterPage() {
         firstName: "",
         lastName: "",
         email: "",
-        password: ""
+        password: "",
+        confirmPassword: ""
     });
 
     const [error, setError] = useState("");
@@ -25,13 +26,54 @@ export default function RegisterPage() {
         }));
     }
 
+    function validateForm() {
+        if (!formData.firstName.trim()) {
+            return "First name is required.";
+        }
+
+        if (!formData.lastName.trim()) {
+            return "Last name is required.";
+        }
+
+        if (!formData.email.trim()) {
+            return "Email is required.";
+        }
+
+        if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            return "Enter a valid email address.";
+        }
+
+        if (formData.password.length < 6) {
+            return "Password must be at least 6 characters.";
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            return "Passwords do not match.";
+        }
+
+        return "";
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
+
+        const validationError = validateForm();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
         setError("");
         setSubmitting(true);
 
         try {
-            await register(formData);
+            await register({
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
+                email: formData.email.trim(),
+                password: formData.password
+            });
+
             navigate("/account");
         } catch (err) {
             setError(err.message || "Registration failed.");
@@ -55,7 +97,6 @@ export default function RegisterPage() {
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleChange}
-                            required
                         />
                     </label>
 
@@ -67,7 +108,6 @@ export default function RegisterPage() {
                             name="lastName"
                             value={formData.lastName}
                             onChange={handleChange}
-                            required
                         />
                     </label>
 
@@ -79,7 +119,6 @@ export default function RegisterPage() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            required
                         />
                     </label>
 
@@ -91,7 +130,17 @@ export default function RegisterPage() {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            required
+                        />
+                    </label>
+
+                    <label className="auth-label">
+                        Confirm Password
+                        <input
+                            className="auth-input"
+                            type="password"
+                            name="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
                         />
                     </label>
 

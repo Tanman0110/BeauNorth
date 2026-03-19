@@ -1,51 +1,85 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
+import { getMyCart, removeCartItem, updateCartItem, clearMyCart } from "../api/cartApi";
 import "./CartPage.css";
 
 export default function CartPage() {
-    const [cartItems, setCartItems] = useState([]);
+    const navigate = useNavigate();
+    const { isAuthenticated, loading } = useAuth();
+
+    const [cart, setCart] = useState(null);
+    const [error, setError] = useState("");
+    const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        function loadCart() {
-            const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-            setCartItems(storedCart);
+        async function loadCart() {
+            try {
+                const data = await getMyCart();
+                setCart(data);
+            } catch (err) {
+                setError(err.message || "Failed to load cart.");
+            } finally {
+                setPageLoading(false);
+            }
         }
 
-        loadCart();
-        window.addEventListener("storage", loadCart);
+        if (!loading && isAuthenticated) {
+            loadCart();
+        } else if (!loading) {
+            setPageLoading(false);
+        }
+    }, [loading, isAuthenticated]);
 
-        return () => {
-            window.removeEventListener("storage", loadCart);
-        };
-    }, []);
+    if (loading || pageLoading) {
+        return <p className="cart-status">Loading cart...</p>;
+    }
 
-    function updateQuantity(index, newQuantity) {
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    const cartItems = cart?.cartItems || [];
+    const subtotal = cartItems.reduce((total, item) => total + Number(item.unitPrice) * item.quantity, 0);
+
+    async function handleUpdateQuantity(cartItemId, newQuantity) {
         if (newQuantity < 1) return;
 
-        const updatedCart = [...cartItems];
-        updatedCart[index].quantity = newQuantity;
-
-        localStorage.setItem("cart", JSON.stringify(updatedCart));
-        setCartItems(updatedCart);
-        window.dispatchEvent(new Event("storage"));
+        try {
+            await updateCartItem(cartItemId, newQuantity);
+            const updatedCart = await getMyCart();
+            setCart(updatedCart);
+        } catch (err) {
+            setError(err.message || "Failed to update cart item.");
+        }
     }
 
-    function removeItem(index) {
-        const updatedCart = cartItems.filter((_, itemIndex) => itemIndex !== index);
-        localStorage.setItem("cart", JSON.stringify(updatedCart));
-        setCartItems(updatedCart);
-        window.dispatchEvent(new Event("storage"));
+    async function handleRemoveItem(cartItemId) {
+        try {
+            await removeCartItem(cartItemId);
+            const updatedCart = await getMyCart();
+            setCart(updatedCart);
+        } catch (err) {
+            setError(err.message || "Failed to remove cart item.");
+        }
     }
 
-    const subtotal = cartItems.reduce(
-        (total, item) => total + Number(item.price) * item.quantity,
-        0
-    );
+    async function handleClearCart() {
+        try {
+            await clearMyCart();
+            const updatedCart = await getMyCart();
+            setCart(updatedCart);
+        } catch (err) {
+            setError(err.message || "Failed to clear cart.");
+        }
+    }
 
     return (
         <main className="cart-page">
             <section className="cart-section">
                 <h1 className="cart-title">Your Cart</h1>
+
+                {error && <p className="cart-error">{error}</p>}
 
                 {cartItems.length === 0 ? (
                     <div className="cart-empty">
@@ -57,40 +91,39 @@ export default function CartPage() {
                 ) : (
                     <div className="cart-layout">
                         <div className="cart-items">
-                            {cartItems.map((item, index) => (
-                                <article
-                                    key={`${item.productId}-${item.selectedSize}-${item.selectedColor}-${index}`}
-                                    className="cart-item"
-                                >
+                            {cartItems.map((item) => (
+                                <article key={item.cartItemId} className="cart-item">
                                     <img
-                                        src={item.imageUrl}
-                                        alt={item.name}
+                                        src={item.product?.imageUrl}
+                                        alt={item.product?.name}
                                         className="cart-item-image"
                                     />
 
                                     <div className="cart-item-content">
-                                        <h2 className="cart-item-title">{item.name}</h2>
+                                        <h2 className="cart-item-title">
+                                            {item.product?.name}
+                                        </h2>
 
-                                        {item.selectedSize && (
+                                        {item.sizeSelected && (
                                             <p className="cart-item-meta">
-                                                Size: {item.selectedSize}
+                                                Size: {item.sizeSelected}
                                             </p>
                                         )}
 
-                                        {item.selectedColor && (
+                                        {item.colorSelected && (
                                             <p className="cart-item-meta">
-                                                Color: {item.selectedColor}
+                                                Color: {item.colorSelected}
                                             </p>
                                         )}
 
                                         <p className="cart-item-price">
-                                            ${Number(item.price).toFixed(2)}
+                                            ${Number(item.unitPrice).toFixed(2)}
                                         </p>
 
                                         <div className="cart-item-actions">
                                             <button
                                                 className="cart-qty-button"
-                                                onClick={() => updateQuantity(index, item.quantity - 1)}
+                                                onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1)}
                                             >
                                                 -
                                             </button>
@@ -99,14 +132,14 @@ export default function CartPage() {
 
                                             <button
                                                 className="cart-qty-button"
-                                                onClick={() => updateQuantity(index, item.quantity + 1)}
+                                                onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
                                             >
                                                 +
                                             </button>
 
                                             <button
                                                 className="cart-remove-button"
-                                                onClick={() => removeItem(index)}
+                                                onClick={() => handleRemoveItem(item.cartItemId)}
                                             >
                                                 Remove
                                             </button>
@@ -123,8 +156,18 @@ export default function CartPage() {
                                 <strong>${subtotal.toFixed(2)}</strong>
                             </p>
 
-                            <button className="cart-checkout-button">
+                            <button
+                                className="cart-checkout-button"
+                                onClick={() => navigate("/checkout")}
+                            >
                                 Checkout
+                            </button>
+
+                            <button
+                                className="cart-clear-button"
+                                onClick={handleClearCart}
+                            >
+                                Clear Cart
                             </button>
                         </aside>
                     </div>

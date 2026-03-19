@@ -13,4 +13,13 @@ async function handleResponse(response, errorMessage) {
     return response.json();
 }
 
-export { API_BASE_URL, handleResponse };
+function getAuthHeaders() {
+    const token = localStorage.getItem("token");
+
+    return {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : ""
+    };
+}
+
+export { API_BASE_URL, handleResponse, getAuthHeaders };

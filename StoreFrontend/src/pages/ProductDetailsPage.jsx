@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { getProductById } from "../api/productApi";
+import { addItemToCart } from "../api/cartApi";
+import { useAuth } from "../context/useAuth";
 import "./ProductDetailsPage.css";
 
 export default function ProductDetailsPage() {
     const { id } = useParams();
+    const { isAuthenticated, loading: authLoading } = useAuth();
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -20,21 +23,11 @@ export default function ProductDetailsPage() {
                 const data = await getProductById(id);
                 setProduct(data);
 
-                const sizes = data.sizeOptions
-                    ? data.sizeOptions.split(",").map((size) => size.trim())
-                    : [];
+                const sizes = data.sizeOptions ? data.sizeOptions.split(",").map((size) => size.trim()) : [];
+                const colors = data.colorOptions ? data.colorOptions.split(",").map((color) => color.trim()) : [];
 
-                const colors = data.colorOptions
-                    ? data.colorOptions.split(",").map((color) => color.trim())
-                    : [];
-
-                if (sizes.length > 0) {
-                    setSelectedSize(sizes[0]);
-                }
-
-                if (colors.length > 0) {
-                    setSelectedColor(colors[0]);
-                }
+                if (sizes.length > 0) setSelectedSize(sizes[0]);
+                if (colors.length > 0) setSelectedColor(colors[0]);
             } catch (err) {
                 setError(err.message || "Failed to load product.");
             } finally {
@@ -45,42 +38,32 @@ export default function ProductDetailsPage() {
         loadProduct();
     }, [id]);
 
-    function handleAddToCart() {
+    async function handleAddToCart() {
         if (!product) return;
 
-        const cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-        const existingItemIndex = cart.findIndex(
-            (item) =>
-                item.productId === product.productId &&
-                item.selectedSize === selectedSize &&
-                item.selectedColor === selectedColor
-        );
-
-        if (existingItemIndex >= 0) {
-            cart[existingItemIndex].quantity += quantity;
-        } else {
-            cart.push({
+        try {
+            await addItemToCart({
                 productId: product.productId,
-                name: product.name,
-                price: product.price,
-                imageUrl: product.imageUrl,
                 quantity,
-                selectedSize,
-                selectedColor
+                sizeSelected: selectedSize || null,
+                colorSelected: selectedColor || null
             });
-        }
 
-        localStorage.setItem("cart", JSON.stringify(cart));
-        window.dispatchEvent(new Event("storage"));
-        setMessage("Added to cart.");
+            setMessage("Added to cart.");
+        } catch (err) {
+            setError(err.message || "Failed to add item to cart.");
+        }
     }
 
-    if (loading) {
+    if (loading || authLoading) {
         return <p className="product-details-status">Loading product...</p>;
     }
 
-    if (error) {
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (error && !product) {
         return <p className="product-details-status product-details-error">{error}</p>;
     }
 
@@ -88,13 +71,8 @@ export default function ProductDetailsPage() {
         return <p className="product-details-status">Product not found.</p>;
     }
 
-    const sizes = product.sizeOptions
-        ? product.sizeOptions.split(",").map((size) => size.trim())
-        : [];
-
-    const colors = product.colorOptions
-        ? product.colorOptions.split(",").map((color) => color.trim())
-        : [];
+    const sizes = product.sizeOptions ? product.sizeOptions.split(",").map((size) => size.trim()) : [];
+    const colors = product.colorOptions ? product.colorOptions.split(",").map((color) => color.trim()) : [];
 
     return (
         <main className="product-details-page">
@@ -105,40 +83,21 @@ export default function ProductDetailsPage() {
 
                 <div className="product-details-card">
                     <div>
-                        <img
-                            src={product.imageUrl}
-                            alt={product.name}
-                            className="product-details-image"
-                        />
+                        <img src={product.imageUrl} alt={product.name} className="product-details-image" />
                     </div>
 
                     <div>
-                        <p className="product-details-category">
-                            {product.category?.name || "Uncategorized"}
-                        </p>
-
+                        <p className="product-details-category">{product.category?.name || "Uncategorized"}</p>
                         <h1 className="product-details-title">{product.name}</h1>
-
-                        <p className="product-details-price">
-                            ${Number(product.price).toFixed(2)}
-                        </p>
-
-                        <p className="product-details-description">
-                            {product.description}
-                        </p>
+                        <p className="product-details-price">${Number(product.price).toFixed(2)}</p>
+                        <p className="product-details-description">{product.description}</p>
 
                         {sizes.length > 0 && (
                             <div className="product-details-field">
                                 <label className="product-details-label">Size</label>
-                                <select
-                                    className="product-details-select"
-                                    value={selectedSize}
-                                    onChange={(e) => setSelectedSize(e.target.value)}
-                                >
+                                <select className="product-details-select" value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)}>
                                     {sizes.map((size) => (
-                                        <option key={size} value={size}>
-                                            {size}
-                                        </option>
+                                        <option key={size} value={size}>{size}</option>
                                     ))}
                                 </select>
                             </div>
@@ -147,15 +106,9 @@ export default function ProductDetailsPage() {
                         {colors.length > 0 && (
                             <div className="product-details-field">
                                 <label className="product-details-label">Color</label>
-                                <select
-                                    className="product-details-select"
-                                    value={selectedColor}
-                                    onChange={(e) => setSelectedColor(e.target.value)}
-                                >
+                                <select className="product-details-select" value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)}>
                                     {colors.map((color) => (
-                                        <option key={color} value={color}>
-                                            {color}
-                                        </option>
+                                        <option key={color} value={color}>{color}</option>
                                     ))}
                                 </select>
                             </div>
@@ -173,20 +126,14 @@ export default function ProductDetailsPage() {
                             />
                         </div>
 
-                        <p className="product-details-stock">
-                            In Stock: {product.stockQuantity}
-                        </p>
+                        <p className="product-details-stock">In Stock: {product.stockQuantity}</p>
 
-                        <button
-                            className="product-details-button"
-                            onClick={handleAddToCart}
-                        >
+                        <button className="product-details-button" onClick={handleAddToCart}>
                             Add to Cart
                         </button>
 
-                        {message && (
-                            <p className="product-details-message">{message}</p>
-                        )}
+                        {message && <p className="product-details-message">{message}</p>}
+                        {error && product && <p className="product-details-error">{error}</p>}
                     </div>
                 </div>
             </section>

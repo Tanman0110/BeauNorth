@@ -23,13 +23,40 @@ export default function LoginPage() {
         }));
     }
 
+    function validateForm() {
+        if (!formData.email.trim()) {
+            return "Email is required.";
+        }
+
+        if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            return "Enter a valid email address.";
+        }
+
+        if (!formData.password.trim()) {
+            return "Password is required.";
+        }
+
+        return "";
+    }
+
     async function handleSubmit(event) {
         event.preventDefault();
+
+        const validationError = validateForm();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
         setError("");
         setSubmitting(true);
 
         try {
-            await login(formData);
+            await login({
+                email: formData.email.trim(),
+                password: formData.password
+            });
+
             navigate("/account");
         } catch (err) {
             setError(err.message || "Login failed.");
@@ -53,7 +80,6 @@ export default function LoginPage() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            required
                         />
                     </label>
 
@@ -65,7 +91,6 @@ export default function LoginPage() {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            required
                         />
                     </label>
 
