@@ -22,30 +22,20 @@ namespace StoreAPI.Controllers
         [HttpGet("me")]
         public async Task<IActionResult> GetMyAccount()
         {
-            var userId = GetAuthenticatedUserId();
-            if (userId == null)
-            {
-                return Unauthorized();
-            }
-
-            var user = await _context.Users
-                .Where(u => u.UserId == userId.Value && !u.IsDeleted)
-                .Select(u => new UserResponseDto
-                {
-                    UserId = u.UserId,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Email = u.Email,
-                    Role = u.Role
-                })
-                .FirstOrDefaultAsync();
-
+            var user = await GetAuthenticatedUserEntity();
             if (user == null)
             {
                 return NotFound();
             }
 
-            return Ok(user);
+            return Ok(new UserResponseDto
+            {
+                UserId = user.UserId,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Role = user.Role
+            });
         }
 
         [HttpPut("me")]
@@ -56,14 +46,7 @@ namespace StoreAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            var userId = GetAuthenticatedUserId();
-            if (userId == null)
-            {
-                return Unauthorized();
-            }
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId.Value && !u.IsDeleted);
-
+            var user = await GetAuthenticatedUserEntity();
             if (user == null)
             {
                 return NotFound();
@@ -91,17 +74,39 @@ namespace StoreAPI.Controllers
             return NoContent();
         }
 
+        [HttpPut("me/password")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await GetAuthenticatedUserEntity();
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var currentPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash);
+
+            if (!currentPasswordValid)
+            {
+                return BadRequest("Current password is incorrect.");
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         [HttpDelete("me")]
         public async Task<IActionResult> DeleteMyAccount()
         {
-            var userId = GetAuthenticatedUserId();
-            if (userId == null)
-            {
-                return Unauthorized();
-            }
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId.Value && !u.IsDeleted);
-
+            var user = await GetAuthenticatedUserEntity();
             if (user == null)
             {
                 return NotFound();
@@ -121,7 +126,7 @@ namespace StoreAPI.Controllers
             return NoContent();
         }
 
-        private int? GetAuthenticatedUserId()
+        private async Task<StoreAPI.Models.User?> GetAuthenticatedUserEntity()
         {
             var claimValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -130,7 +135,7 @@ namespace StoreAPI.Controllers
                 return null;
             }
 
-            return userId;
+            return await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId && !u.IsDeleted);
         }
     }
 }
