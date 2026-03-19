@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace StoreApi.Models
+namespace StoreAPI.Models
 {
     public class Payment
     {
@@ -20,9 +20,11 @@ namespace StoreApi.Models
         [MaxLength(50)]
         public string Status { get; set; } = "Pending";
 
+        [Range(typeof(decimal), "0.00", "999999.99")]
         public decimal Amount { get; set; }
 
         public DateTime? PaidAt { get; set; }
+
         [JsonIgnore]
         public Order? Order { get; set; }
     }
