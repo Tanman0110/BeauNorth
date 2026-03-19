@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreApi.Data;
-using StoreAPI.Models;
+using System.Security.Claims;
 
-namespace StoreApi.Controllers
+namespace StoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class OrderController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -16,11 +18,17 @@ namespace StoreApi.Controllers
             _context = context;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetOrders()
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMyOrders()
         {
+            var userId = GetAuthenticatedUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
             var orders = await _context.Orders
-                .Include(o => o.User)
+                .Where(o => o.UserId == userId.Value)
                 .Include(o => o.OrderItems)
                 .Include(o => o.ShippingAddress)
                 .Include(o => o.Payment)
@@ -31,17 +39,22 @@ namespace StoreApi.Controllers
             return Ok(orders);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetOrder(int id)
+        [HttpGet("me/{id}")]
+        public async Task<IActionResult> GetMyOrderById(int id)
         {
+            var userId = GetAuthenticatedUserId();
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
             var order = await _context.Orders
-                .Include(o => o.User)
+                .Where(o => o.OrderId == id && o.UserId == userId.Value)
                 .Include(o => o.OrderItems)
-                    .ThenInclude(oi => oi.Product)
                 .Include(o => o.ShippingAddress)
                 .Include(o => o.Payment)
                 .Include(o => o.FulfillmentOrder)
-                .FirstOrDefaultAsync(o => o.OrderId == id);
+                .FirstOrDefaultAsync();
 
             if (order == null)
             {
@@ -51,87 +64,15 @@ namespace StoreApi.Controllers
             return Ok(order);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateOrder(Order order)
+        private int? GetAuthenticatedUserId()
         {
-            if (!ModelState.IsValid)
+            var claimValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claimValue, out var userId))
             {
-                return BadRequest(ModelState);
+                return null;
             }
 
-            var userExists = await _context.Users
-                .AnyAsync(u => u.UserId == order.UserId);
-
-            if (!userExists)
-            {
-                return BadRequest("Invalid UserId.");
-            }
-
-            order.CreatedAt = DateTime.UtcNow;
-            order.UpdatedAt = DateTime.UtcNow;
-
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetOrder), new { id = order.OrderId }, order);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrder(int id, Order updatedOrder)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (id != updatedOrder.OrderId)
-            {
-                return BadRequest("Order ID mismatch.");
-            }
-
-            var existingOrder = await _context.Orders.FindAsync(id);
-
-            if (existingOrder == null)
-            {
-                return NotFound();
-            }
-
-            var userExists = await _context.Users
-                .AnyAsync(u => u.UserId == updatedOrder.UserId);
-
-            if (!userExists)
-            {
-                return BadRequest("Invalid UserId.");
-            }
-
-            existingOrder.UserId = updatedOrder.UserId;
-            existingOrder.OrderNumber = updatedOrder.OrderNumber;
-            existingOrder.Status = updatedOrder.Status;
-            existingOrder.Subtotal = updatedOrder.Subtotal;
-            existingOrder.TaxAmount = updatedOrder.TaxAmount;
-            existingOrder.ShippingAmount = updatedOrder.ShippingAmount;
-            existingOrder.TotalAmount = updatedOrder.TotalAmount;
-            existingOrder.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteOrder(int id)
-        {
-            var order = await _context.Orders.FindAsync(id);
-
-            if (order == null)
-            {
-                return NotFound();
-            }
-
-            _context.Orders.Remove(order);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            return userId;
         }
     }
 }
