@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="BeauNorthAPI/BeauNorthAPI.csproj" />
+  <Project Path="BeauNorthFrontend/beaunorthfrontend.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+</Solution>
