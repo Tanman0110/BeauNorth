@@ -38,13 +38,72 @@ export default function CheckoutPage() {
         }));
     }
 
+    function isValidFullName(name) {
+        return /^[A-Za-z]+([ '-][A-Za-z]+)*(\s[A-Za-z]+([ '-][A-Za-z]+)*)*$/.test(
+            name
+        );
+    }
+
+    function isValidLocationName(value) {
+        return /^[A-Za-z]+([ '-][A-Za-z]+)*$/.test(value);
+    }
+
+    function isValidPostalCode(value) {
+        return /^[A-Za-z0-9 -]+$/.test(value);
+    }
+
     function validateForm() {
-        if (!formData.fullName.trim()) return "Full name is required.";
-        if (!formData.addressLine1.trim()) return "Address line 1 is required.";
-        if (!formData.city.trim()) return "City is required.";
-        if (!formData.state.trim()) return "State is required.";
-        if (!formData.postalCode.trim()) return "Postal code is required.";
-        if (!formData.country.trim()) return "Country is required.";
+        const fullName = formData.fullName.trim();
+        const addressLine1 = formData.addressLine1.trim();
+        const city = formData.city.trim();
+        const state = formData.state.trim();
+        const postalCode = formData.postalCode.trim();
+        const country = formData.country.trim();
+
+        if (!fullName) {
+            return "Full name is required.";
+        }
+
+        if (!isValidFullName(fullName)) {
+            return "Full name contains invalid characters.";
+        }
+
+        if (!addressLine1) {
+            return "Address line 1 is required.";
+        }
+
+        if (!city) {
+            return "City is required.";
+        }
+
+        if (!isValidLocationName(city)) {
+            return "City contains invalid characters.";
+        }
+
+        if (!state) {
+            return "State is required.";
+        }
+
+        if (!isValidLocationName(state)) {
+            return "State contains invalid characters.";
+        }
+
+        if (!postalCode) {
+            return "Postal code is required.";
+        }
+
+        if (!isValidPostalCode(postalCode)) {
+            return "Postal code contains invalid characters.";
+        }
+
+        if (!country) {
+            return "Country is required.";
+        }
+
+        if (!isValidLocationName(country)) {
+            return "Country contains invalid characters.";
+        }
+
         return "";
     }
 
@@ -72,15 +131,12 @@ export default function CheckoutPage() {
                 paymentProvider: formData.paymentProvider
             });
 
-            console.log("Checkout success:", order);
-
             navigate("/orders", {
                 state: {
                     successMessage: `Order ${order.orderNumber} placed successfully.`
                 }
             });
         } catch (err) {
-            console.error("Checkout failed:", err);
             setError(err.message || "Checkout failed.");
         } finally {
             setSubmitting(false);
@@ -179,7 +235,11 @@ export default function CheckoutPage() {
 
                     {error && <p className="checkout-error">{error}</p>}
 
-                    <button className="checkout-button" type="submit" disabled={submitting}>
+                    <button
+                        className="checkout-button"
+                        type="submit"
+                        disabled={submitting}
+                    >
                         {submitting ? "Placing Order..." : "Place Order"}
                     </button>
                 </form>

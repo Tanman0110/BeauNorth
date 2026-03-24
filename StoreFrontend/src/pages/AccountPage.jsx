@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { forgotPassword } from "../api/authApi";
 import { useAuth } from "../context/useAuth";
-import { changeMyPassword, deleteMyAccount, getMyAccount, updateMyAccount } from "../api/userApi";
+import {
+    deleteMyAccount,
+    getMyAccount,
+    updateMyAccount
+} from "../api/userApi";
 import "./AccountPage.css";
 
 export default function AccountPage() {
@@ -14,11 +19,6 @@ export default function AccountPage() {
         email: ""
     });
 
-    const [passwordData, setPasswordData] = useState({
-        currentPassword: "",
-        newPassword: ""
-    });
-
     const [statusMessage, setStatusMessage] = useState("");
     const [error, setError] = useState("");
     const [pageLoading, setPageLoading] = useState(true);
@@ -28,9 +28,9 @@ export default function AccountPage() {
             try {
                 const user = await getMyAccount();
                 setFormData({
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email
+                    firstName: user.firstName ?? "",
+                    lastName: user.lastName ?? "",
+                    email: user.email ?? ""
                 });
             } catch (err) {
                 setError(err.message || "Failed to load account.");
@@ -62,12 +62,12 @@ export default function AccountPage() {
         }));
     }
 
-    function handlePasswordChange(event) {
-        const { name, value } = event.target;
-        setPasswordData((prev) => ({
-            ...prev,
-            [name]: value
-        }));
+    function isValidName(name) {
+        return /^[A-Za-z]+([ '-][A-Za-z]+)*$/.test(name);
+    }
+
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
     async function handleProfileSubmit(event) {
@@ -75,11 +75,45 @@ export default function AccountPage() {
         setError("");
         setStatusMessage("");
 
+        const firstName = formData.firstName.trim();
+        const lastName = formData.lastName.trim();
+        const email = formData.email.trim();
+
+        if (!firstName) {
+            setError("First name is required.");
+            return;
+        }
+
+        if (!isValidName(firstName)) {
+            setError("First name contains invalid characters.");
+            return;
+        }
+
+        if (!lastName) {
+            setError("Last name is required.");
+            return;
+        }
+
+        if (!isValidName(lastName)) {
+            setError("Last name contains invalid characters.");
+            return;
+        }
+
+        if (!email) {
+            setError("Email is required.");
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            setError("Enter a valid email address.");
+            return;
+        }
+
         try {
             await updateMyAccount({
-                firstName: formData.firstName.trim(),
-                lastName: formData.lastName.trim(),
-                email: formData.email.trim()
+                firstName,
+                lastName,
+                email
             });
 
             setStatusMessage("Account updated successfully.");
@@ -88,26 +122,24 @@ export default function AccountPage() {
         }
     }
 
-    async function handlePasswordSubmit(event) {
-        event.preventDefault();
+    async function handleSendPasswordReset() {
         setError("");
         setStatusMessage("");
 
         try {
-            await changeMyPassword(passwordData);
-            setPasswordData({
-                currentPassword: "",
-                newPassword: ""
-            });
-            setStatusMessage("Password changed successfully.");
+            const response = await forgotPassword(formData.email.trim());
+            setStatusMessage(response.message || "Password reset email sent.");
         } catch (err) {
-            setError(err.message || "Failed to change password.");
+            setError(err.message || "Failed to send password reset email.");
         }
     }
 
     async function handleDeleteAccount() {
         const confirmed = window.confirm("Are you sure you want to delete your account?");
-        if (!confirmed) return;
+
+        if (!confirmed) {
+            return;
+        }
 
         try {
             await deleteMyAccount();
@@ -131,17 +163,33 @@ export default function AccountPage() {
 
                     <label className="account-label">
                         First Name
-                        <input className="account-input" name="firstName" value={formData.firstName} onChange={handleChange} />
+                        <input
+                            className="account-input"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleChange}
+                        />
                     </label>
 
                     <label className="account-label">
                         Last Name
-                        <input className="account-input" name="lastName" value={formData.lastName} onChange={handleChange} />
+                        <input
+                            className="account-input"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleChange}
+                        />
                     </label>
 
                     <label className="account-label">
                         Email
-                        <input className="account-input" name="email" value={formData.email} onChange={handleChange} />
+                        <input
+                            className="account-input"
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                        />
                     </label>
 
                     <button className="account-button" type="submit">
@@ -149,27 +197,20 @@ export default function AccountPage() {
                     </button>
                 </form>
 
-                <form className="account-form" onSubmit={handlePasswordSubmit}>
-                    <h2 className="account-section-title">Change Password</h2>
-
-                    <label className="account-label">
-                        Current Password
-                        <input className="account-input" type="password" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} />
-                    </label>
-
-                    <label className="account-label">
-                        New Password
-                        <input className="account-input" type="password" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} />
-                    </label>
-
-                    <button className="account-button" type="submit">
-                        Update Password
+                <div className="account-form">
+                    <h2 className="account-section-title">Password</h2>
+                    <button className="account-button" onClick={handleSendPasswordReset}>
+                        Send Password Reset Email
                     </button>
-                </form>
+                </div>
 
                 <div className="account-danger-zone">
                     <h2 className="account-section-title">Danger Zone</h2>
-                    <button className="account-delete-button" onClick={handleDeleteAccount}>
+
+                    <button
+                        className="account-delete-button"
+                        onClick={handleDeleteAccount}
+                    >
                         Delete Account
                     </button>
                 </div>

@@ -14,7 +14,7 @@ namespace StoreAPI.DTOs.Products
         [MaxLength(2000)]
         public string? Description { get; set; }
 
-        [Range(typeof(decimal), "0.01", "999.99")]
+        [Range(typeof(decimal), "0.01", "999999.99")]
         public decimal Price { get; set; }
 
         [Url]
@@ -32,7 +32,7 @@ namespace StoreAPI.DTOs.Products
 
         [Required]
         [MaxLength(100)]
-        [RegularExpression(@"^[A-Z0-9\-]+$")]
+        [RegularExpression(@"^[A-Z0-9\-]+$", ErrorMessage = "SKU can only contain uppercase letters, numbers, and hyphens.")]
         public string Sku { get; set; } = string.Empty;
 
         public bool IsActive { get; set; } = true;

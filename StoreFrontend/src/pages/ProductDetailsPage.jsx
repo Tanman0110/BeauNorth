@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { getProductById } from "../api/productApi";
 import { addItemToCart } from "../api/cartApi";
 import { useAuth } from "../context/useAuth";
@@ -7,7 +7,8 @@ import "./ProductDetailsPage.css";
 
 export default function ProductDetailsPage() {
     const { id } = useParams();
-    const { isAuthenticated, loading: authLoading } = useAuth();
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -23,8 +24,13 @@ export default function ProductDetailsPage() {
                 const data = await getProductById(id);
                 setProduct(data);
 
-                const sizes = data.sizeOptions ? data.sizeOptions.split(",").map((size) => size.trim()) : [];
-                const colors = data.colorOptions ? data.colorOptions.split(",").map((color) => color.trim()) : [];
+                const sizes = data.sizeOptions
+                    ? data.sizeOptions.split(",").map((size) => size.trim())
+                    : [];
+
+                const colors = data.colorOptions
+                    ? data.colorOptions.split(",").map((color) => color.trim())
+                    : [];
 
                 if (sizes.length > 0) setSelectedSize(sizes[0]);
                 if (colors.length > 0) setSelectedColor(colors[0]);
@@ -38,8 +44,36 @@ export default function ProductDetailsPage() {
         loadProduct();
     }, [id]);
 
+    function handleQuantityChange(event) {
+        if (!product) return;
+
+        let value = event.target.value.replace(/^0+/, "");
+
+        if (value === "") {
+            setQuantity(1);
+            return;
+        }
+
+        let numericValue = Number(value);
+
+        if (Number.isNaN(numericValue) || numericValue < 1) {
+            numericValue = 1;
+        }
+
+        if (numericValue > product.stockQuantity) {
+            numericValue = product.stockQuantity;
+        }
+
+        setQuantity(numericValue);
+    }
+
     async function handleAddToCart() {
         if (!product) return;
+
+        if (!isAuthenticated) {
+            navigate("/login");
+            return;
+        }
 
         try {
             await addItemToCart({
@@ -49,18 +83,16 @@ export default function ProductDetailsPage() {
                 colorSelected: selectedColor || null
             });
 
+            window.dispatchEvent(new Event("cart-updated"));
             setMessage("Added to cart.");
+            setError("");
         } catch (err) {
             setError(err.message || "Failed to add item to cart.");
         }
     }
 
-    if (loading || authLoading) {
+    if (loading) {
         return <p className="product-details-status">Loading product...</p>;
-    }
-
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
     }
 
     if (error && !product) {
@@ -71,8 +103,13 @@ export default function ProductDetailsPage() {
         return <p className="product-details-status">Product not found.</p>;
     }
 
-    const sizes = product.sizeOptions ? product.sizeOptions.split(",").map((size) => size.trim()) : [];
-    const colors = product.colorOptions ? product.colorOptions.split(",").map((color) => color.trim()) : [];
+    const sizes = product.sizeOptions
+        ? product.sizeOptions.split(",").map((size) => size.trim())
+        : [];
+
+    const colors = product.colorOptions
+        ? product.colorOptions.split(",").map((color) => color.trim())
+        : [];
 
     return (
         <main className="product-details-page">
@@ -83,21 +120,40 @@ export default function ProductDetailsPage() {
 
                 <div className="product-details-card">
                     <div>
-                        <img src={product.imageUrl} alt={product.name} className="product-details-image" />
+                        <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="product-details-image"
+                        />
                     </div>
 
                     <div>
-                        <p className="product-details-category">{product.category?.name || "Uncategorized"}</p>
+                        <p className="product-details-category">
+                            {product.category?.name || "Uncategorized"}
+                        </p>
+
                         <h1 className="product-details-title">{product.name}</h1>
-                        <p className="product-details-price">${Number(product.price).toFixed(2)}</p>
-                        <p className="product-details-description">{product.description}</p>
+
+                        <p className="product-details-price">
+                            ${Number(product.price).toFixed(2)}
+                        </p>
+
+                        <p className="product-details-description">
+                            {product.description}
+                        </p>
 
                         {sizes.length > 0 && (
                             <div className="product-details-field">
                                 <label className="product-details-label">Size</label>
-                                <select className="product-details-select" value={selectedSize} onChange={(e) => setSelectedSize(e.target.value)}>
+                                <select
+                                    className="product-details-select"
+                                    value={selectedSize}
+                                    onChange={(e) => setSelectedSize(e.target.value)}
+                                >
                                     {sizes.map((size) => (
-                                        <option key={size} value={size}>{size}</option>
+                                        <option key={size} value={size}>
+                                            {size}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -106,9 +162,15 @@ export default function ProductDetailsPage() {
                         {colors.length > 0 && (
                             <div className="product-details-field">
                                 <label className="product-details-label">Color</label>
-                                <select className="product-details-select" value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)}>
+                                <select
+                                    className="product-details-select"
+                                    value={selectedColor}
+                                    onChange={(e) => setSelectedColor(e.target.value)}
+                                >
                                     {colors.map((color) => (
-                                        <option key={color} value={color}>{color}</option>
+                                        <option key={color} value={color}>
+                                            {color}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -122,13 +184,18 @@ export default function ProductDetailsPage() {
                                 min="1"
                                 max={product.stockQuantity}
                                 value={quantity}
-                                onChange={(e) => setQuantity(Number(e.target.value))}
+                                onChange={handleQuantityChange}
                             />
                         </div>
 
-                        <p className="product-details-stock">In Stock: {product.stockQuantity}</p>
+                        <p className="product-details-stock">
+                            In Stock: {product.stockQuantity}
+                        </p>
 
-                        <button className="product-details-button" onClick={handleAddToCart}>
+                        <button
+                            className="product-details-button"
+                            onClick={handleAddToCart}
+                        >
                             Add to Cart
                         </button>
 

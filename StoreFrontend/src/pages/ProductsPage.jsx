@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getProducts } from "../api/productApi";
 import ProductCard from "../components/ProductCard";
 import "./ProductsPage.css";
@@ -7,6 +7,10 @@ export default function ProductsPage() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("All");
+    const [maxPrice, setMaxPrice] = useState("");
 
     useEffect(() => {
         async function loadProducts() {
@@ -23,6 +27,30 @@ export default function ProductsPage() {
         loadProducts();
     }, []);
 
+    const categories = useMemo(() => {
+        const categoryNames = products
+            .map((product) => product.category?.name)
+            .filter(Boolean);
+
+        return ["All", ...new Set(categoryNames)];
+    }, [products]);
+
+    const filteredProducts = useMemo(() => {
+        return products.filter((product) => {
+            const matchesSearch =
+                product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (product.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesCategory =
+                selectedCategory === "All" || product.category?.name === selectedCategory;
+
+            const matchesPrice =
+                !maxPrice || Number(product.price) <= Number(maxPrice);
+
+            return matchesSearch && matchesCategory && matchesPrice;
+        });
+    }, [products, searchTerm, selectedCategory, maxPrice]);
+
     if (loading) {
         return <p className="products-status">Loading products...</p>;
     }
@@ -37,8 +65,39 @@ export default function ProductsPage() {
                 <h1 className="products-title">Products</h1>
                 <p className="products-subtitle">Browse products from your API.</p>
 
+                <div className="products-filters">
+                    <input
+                        className="products-filter-input"
+                        type="text"
+                        placeholder="Search products..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+
+                    <select
+                        className="products-filter-input"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                        {categories.map((category) => (
+                            <option key={category} value={category}>
+                                {category}
+                            </option>
+                        ))}
+                    </select>
+
+                    <input
+                        className="products-filter-input"
+                        type="number"
+                        min="0"
+                        placeholder="Max price"
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)}
+                    />
+                </div>
+
                 <div className="products-grid">
-                    {products.map((product) => (
+                    {filteredProducts.map((product) => (
                         <ProductCard key={product.productId} product={product} />
                     ))}
                 </div>

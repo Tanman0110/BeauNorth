@@ -6,10 +6,12 @@ namespace StoreAPI.DTOs.Users
     {
         [Required]
         [MaxLength(100)]
+        [RegularExpression(@"^[A-Za-z]+([ '\-][A-Za-z]+)*$", ErrorMessage = "First name contains invalid characters.")]
         public string FirstName { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(100)]
+        [RegularExpression(@"^[A-Za-z]+([ '\-][A-Za-z]+)*$", ErrorMessage = "Last name contains invalid characters.")]
         public string LastName { get; set; } = string.Empty;
 
         [Required]

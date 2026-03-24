@@ -28,12 +28,17 @@ export default function LoginPage() {
             return "Email is required.";
         }
 
-        if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email.trim())) {
             return "Enter a valid email address.";
         }
 
         if (!formData.password.trim()) {
             return "Password is required.";
+        }
+
+        if (formData.password.length < 8) {
+            return "Password must be at least 8 characters.";
         }
 
         return "";
@@ -57,7 +62,7 @@ export default function LoginPage() {
                 password: formData.password
             });
 
-            navigate("/account");
+            navigate("/");
         } catch (err) {
             setError(err.message || "Login failed.");
         } finally {
@@ -93,6 +98,10 @@ export default function LoginPage() {
                             onChange={handleChange}
                         />
                     </label>
+
+                    <div>
+                        <Link to="/forgot-password">Forgot password?</Link>
+                    </div>
 
                     {error && <p className="auth-error">{error}</p>}
 

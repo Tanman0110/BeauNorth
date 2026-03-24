@@ -26,25 +26,63 @@ export default function RegisterPage() {
         }));
     }
 
+    function isValidName(name) {
+        const nameRegex = /^[A-Za-z]+([ '-][A-Za-z]+)*$/;
+        return nameRegex.test(name);
+    }
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    function isStrongPassword(password) {
+        const passwordRegex =
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+        return passwordRegex.test(password);
+    }
+
     function validateForm() {
-        if (!formData.firstName.trim()) {
+        const firstName = formData.firstName.trim();
+        const lastName = formData.lastName.trim();
+        const email = formData.email.trim();
+
+        const reservedWords = ["admin", "root", "system", "null", "owner", "support"];
+
+        if (!firstName) {
             return "First name is required.";
         }
 
-        if (!formData.lastName.trim()) {
+        if (!isValidName(firstName)) {
+            return "First name contains invalid characters.";
+        }
+
+        if (reservedWords.includes(firstName.toLowerCase())) {
+            return "That first name is not allowed.";
+        }
+
+        if (!lastName) {
             return "Last name is required.";
         }
 
-        if (!formData.email.trim()) {
+        if (!isValidName(lastName)) {
+            return "Last name contains invalid characters.";
+        }
+
+        if (reservedWords.includes(lastName.toLowerCase())) {
+            return "That last name is not allowed.";
+        }
+
+        if (!email) {
             return "Email is required.";
         }
 
-        if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        if (!isValidEmail(email)) {
             return "Enter a valid email address.";
         }
 
-        if (formData.password.length < 6) {
-            return "Password must be at least 6 characters.";
+        if (!isStrongPassword(formData.password)) {
+            return "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.";
         }
 
         if (formData.password !== formData.confirmPassword) {

@@ -46,3 +46,16 @@
     font-weight: 700;
     cursor: pointer;
 }
+
+.navbar-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.navbar-logo-image {
+    display: block;
+    width: 140px;
+    height: auto;
+}

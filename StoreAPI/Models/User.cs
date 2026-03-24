@@ -32,6 +32,14 @@ namespace StoreAPI.Models
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
 
+        public int FailedLoginAttempts { get; set; } = 0;
+        public DateTime? LastFailedLoginAtUtc { get; set; }
+        public DateTime? LockoutEndUtc { get; set; }
+
+        [MaxLength(200)]
+        public string? PasswordResetToken { get; set; }
+        public DateTime? PasswordResetTokenExpiresAtUtc { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

@@ -32,7 +32,7 @@ namespace StoreAPI.DTOs.Products
 
         [Required]
         [MaxLength(100)]
-        [RegularExpression(@"^[A-Z0-9\-]+$")]
+        [RegularExpression(@"^[A-Z0-9\-]+$", ErrorMessage = "SKU can only contain uppercase letters, numbers, and hyphens.")]
         public string Sku { get; set; } = string.Empty;
 
         public bool IsActive { get; set; }
