@@ -6,5 +6,8 @@ export default defineConfig({
     plugins: [plugin()],
     server: {
         port: 63146,
+        watch: {
+            usePolling: true
+        }
     }
 })

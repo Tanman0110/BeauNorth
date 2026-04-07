@@ -7,6 +7,11 @@ import {
     getMyAccount,
     updateMyAccount
 } from "../api/userApi";
+import {
+    createMyAddress,
+    deleteMyAddress,
+    getMyAddresses
+} from "../api/userAddressApi";
 import "./AccountPage.css";
 
 export default function AccountPage() {
@@ -19,6 +24,18 @@ export default function AccountPage() {
         email: ""
     });
 
+    const [addresses, setAddresses] = useState([]);
+    const [addressForm, setAddressForm] = useState({
+        fullName: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+        isDefault: false
+    });
+
     const [statusMessage, setStatusMessage] = useState("");
     const [error, setError] = useState("");
     const [pageLoading, setPageLoading] = useState(true);
@@ -26,12 +43,18 @@ export default function AccountPage() {
     useEffect(() => {
         async function loadAccount() {
             try {
-                const user = await getMyAccount();
+                const [user, userAddresses] = await Promise.all([
+                    getMyAccount(),
+                    getMyAddresses()
+                ]);
+
                 setFormData({
                     firstName: user.firstName ?? "",
                     lastName: user.lastName ?? "",
                     email: user.email ?? ""
                 });
+
+                setAddresses(userAddresses);
             } catch (err) {
                 setError(err.message || "Failed to load account.");
             } finally {
@@ -62,12 +85,26 @@ export default function AccountPage() {
         }));
     }
 
+    function handleAddressChange(event) {
+        const { name, value, type, checked } = event.target;
+
+        setAddressForm((prev) => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : value
+        }));
+    }
+
     function isValidName(name) {
         return /^[A-Za-z]+([ '-][A-Za-z]+)*$/.test(name);
     }
 
     function isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    async function reloadAddresses() {
+        const userAddresses = await getMyAddresses();
+        setAddresses(userAddresses);
     }
 
     async function handleProfileSubmit(event) {
@@ -79,32 +116,17 @@ export default function AccountPage() {
         const lastName = formData.lastName.trim();
         const email = formData.email.trim();
 
-        if (!firstName) {
-            setError("First name is required.");
-            return;
-        }
-
-        if (!isValidName(firstName)) {
+        if (!firstName || !isValidName(firstName)) {
             setError("First name contains invalid characters.");
             return;
         }
 
-        if (!lastName) {
-            setError("Last name is required.");
-            return;
-        }
-
-        if (!isValidName(lastName)) {
+        if (!lastName || !isValidName(lastName)) {
             setError("Last name contains invalid characters.");
             return;
         }
 
-        if (!email) {
-            setError("Email is required.");
-            return;
-        }
-
-        if (!isValidEmail(email)) {
+        if (!email || !isValidEmail(email)) {
             setError("Enter a valid email address.");
             return;
         }
@@ -134,12 +156,54 @@ export default function AccountPage() {
         }
     }
 
+    async function handleCreateAddress(event) {
+        event.preventDefault();
+        setError("");
+        setStatusMessage("");
+
+        try {
+            await createMyAddress({
+                fullName: addressForm.fullName.trim(),
+                addressLine1: addressForm.addressLine1.trim(),
+                addressLine2: addressForm.addressLine2.trim(),
+                city: addressForm.city.trim(),
+                state: addressForm.state.trim(),
+                postalCode: addressForm.postalCode.trim(),
+                country: addressForm.country.trim(),
+                isDefault: addressForm.isDefault
+            });
+
+            setAddressForm({
+                fullName: "",
+                addressLine1: "",
+                addressLine2: "",
+                city: "",
+                state: "",
+                postalCode: "",
+                country: "",
+                isDefault: false
+            });
+
+            await reloadAddresses();
+            setStatusMessage("Address added successfully.");
+        } catch (err) {
+            setError(err.message || "Failed to add address.");
+        }
+    }
+
+    async function handleDeleteAddress(id) {
+        try {
+            await deleteMyAddress(id);
+            await reloadAddresses();
+            setStatusMessage("Address deleted successfully.");
+        } catch (err) {
+            setError(err.message || "Failed to delete address.");
+        }
+    }
+
     async function handleDeleteAccount() {
         const confirmed = window.confirm("Are you sure you want to delete your account?");
-
-        if (!confirmed) {
-            return;
-        }
+        if (!confirmed) return;
 
         try {
             await deleteMyAccount();
@@ -204,13 +268,129 @@ export default function AccountPage() {
                     </button>
                 </div>
 
+                <div className="account-form">
+                    <h2 className="account-section-title">Saved Addresses</h2>
+
+                    <div className="account-address-list">
+                        {addresses.map((address) => (
+                            <div key={address.userAddressId} className="account-address-card">
+                                <div>
+                                    <strong>{address.fullName}</strong>
+                                    {address.isDefault && (
+                                        <span className="account-address-default">Default</span>
+                                    )}
+                                </div>
+
+                                <p>{address.addressLine1}</p>
+                                {address.addressLine2 && <p>{address.addressLine2}</p>}
+                                <p>
+                                    {address.city}, {address.state} {address.postalCode}
+                                </p>
+                                <p>{address.country}</p>
+
+                                <button
+                                    className="account-delete-button"
+                                    onClick={() => handleDeleteAddress(address.userAddressId)}
+                                >
+                                    Delete Address
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <form className="account-form" onSubmit={handleCreateAddress}>
+                        <h3 className="account-section-title">Add Address</h3>
+
+                        <label className="account-label">
+                            Full Name
+                            <input
+                                className="account-input"
+                                name="fullName"
+                                value={addressForm.fullName}
+                                onChange={handleAddressChange}
+                            />
+                        </label>
+
+                        <label className="account-label">
+                            Address Line 1
+                            <input
+                                className="account-input"
+                                name="addressLine1"
+                                value={addressForm.addressLine1}
+                                onChange={handleAddressChange}
+                            />
+                        </label>
+
+                        <label className="account-label">
+                            Address Line 2
+                            <input
+                                className="account-input"
+                                name="addressLine2"
+                                value={addressForm.addressLine2}
+                                onChange={handleAddressChange}
+                            />
+                        </label>
+
+                        <label className="account-label">
+                            City
+                            <input
+                                className="account-input"
+                                name="city"
+                                value={addressForm.city}
+                                onChange={handleAddressChange}
+                            />
+                        </label>
+
+                        <label className="account-label">
+                            State
+                            <input
+                                className="account-input"
+                                name="state"
+                                value={addressForm.state}
+                                onChange={handleAddressChange}
+                            />
+                        </label>
+
+                        <label className="account-label">
+                            Postal Code
+                            <input
+                                className="account-input"
+                                name="postalCode"
+                                value={addressForm.postalCode}
+                                onChange={handleAddressChange}
+                            />
+                        </label>
+
+                        <label className="account-label">
+                            Country
+                            <input
+                                className="account-input"
+                                name="country"
+                                value={addressForm.country}
+                                onChange={handleAddressChange}
+                            />
+                        </label>
+
+                        <label className="account-checkbox">
+                            <input
+                                type="checkbox"
+                                name="isDefault"
+                                checked={addressForm.isDefault}
+                                onChange={handleAddressChange}
+                            />
+                            Set as default address
+                        </label>
+
+                        <button className="account-button" type="submit">
+                            Add Address
+                        </button>
+                    </form>
+                </div>
+
                 <div className="account-danger-zone">
                     <h2 className="account-section-title">Danger Zone</h2>
 
-                    <button
-                        className="account-delete-button"
-                        onClick={handleDeleteAccount}
-                    >
+                    <button className="account-delete-button" onClick={handleDeleteAccount}>
                         Delete Account
                     </button>
                 </div>

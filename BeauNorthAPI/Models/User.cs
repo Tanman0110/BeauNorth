@@ -48,5 +48,8 @@ namespace BeauNorthAPI.Models
 
         [JsonIgnore]
         public ICollection<Cart> Carts { get; set; } = new List<Cart>();
+
+        [JsonIgnore]
+        public ICollection<UserAddress> UserAddresses { get; set; } = new List<UserAddress>();
     }
 }

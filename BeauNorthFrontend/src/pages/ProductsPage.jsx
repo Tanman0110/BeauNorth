@@ -1,16 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getProducts } from "../api/productApi";
 import ProductCard from "../components/ProductCard";
 import "./ProductsPage.css";
 
 export default function ProductsPage() {
+    const [searchParams] = useSearchParams();
+    const initialSearch = searchParams.get("search") || "";
+
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState(initialSearch);
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [maxPrice, setMaxPrice] = useState("");
+
+    useEffect(() => {
+        setSearchTerm(initialSearch);
+    }, [initialSearch]);
 
     useEffect(() => {
         async function loadProducts() {
@@ -63,7 +71,7 @@ export default function ProductsPage() {
         <main className="products-page">
             <section className="products-section">
                 <h1 className="products-title">Products</h1>
-                <p className="products-subtitle">Browse products from your API.</p>
+                <p className="products-subtitle">Browse Beau North products.</p>
 
                 <div className="products-filters">
                     <input

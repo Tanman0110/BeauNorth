@@ -8,7 +8,6 @@ namespace BeauNorthApi.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
-
         public DbSet<User> Users => Set<User>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Product> Products => Set<Product>();
@@ -19,6 +18,7 @@ namespace BeauNorthApi.Data
         public DbSet<ShippingAddress> ShippingAddresses => Set<ShippingAddress>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<FulfillmentOrder> FulfillmentOrders => Set<FulfillmentOrder>();
+        public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -131,6 +131,24 @@ namespace BeauNorthApi.Data
                 .WithOne(f => f.Order)
                 .HasForeignKey<FulfillmentOrder>(f => f.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.UserAddresses)
+                .WithOne(a => a.User)
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserAddress>()
+                .HasMany<Order>()
+                .WithOne(o => o.UserAddress)
+                .HasForeignKey(o => o.UserAddressId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<UserAddress>()
+                .HasMany(a => a.Orders)
+                .WithOne(o => o.UserAddress)
+                .HasForeignKey(o => o.UserAddressId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

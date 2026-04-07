@@ -47,6 +47,7 @@ export default function CartPage() {
 
         try {
             await updateCartItem(cartItemId, newQuantity);
+            window.dispatchEvent(new Event("cart-updated"));
             const updatedCart = await getMyCart();
             setCart(updatedCart);
         } catch (err) {
@@ -57,6 +58,7 @@ export default function CartPage() {
     async function handleRemoveItem(cartItemId) {
         try {
             await removeCartItem(cartItemId);
+            window.dispatchEvent(new Event("cart-updated"));
             const updatedCart = await getMyCart();
             setCart(updatedCart);
         } catch (err) {
@@ -67,6 +69,7 @@ export default function CartPage() {
     async function handleClearCart() {
         try {
             await clearMyCart();
+            window.dispatchEvent(new Event("cart-updated"));
             const updatedCart = await getMyCart();
             setCart(updatedCart);
         } catch (err) {
