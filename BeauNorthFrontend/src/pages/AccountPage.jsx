@@ -185,6 +185,7 @@ export default function AccountPage() {
             });
 
             await reloadAddresses();
+            window.dispatchEvent(new Event("addresses-updated"));
             setStatusMessage("Address added successfully.");
         } catch (err) {
             setError(err.message || "Failed to add address.");
@@ -195,6 +196,7 @@ export default function AccountPage() {
         try {
             await deleteMyAddress(id);
             await reloadAddresses();
+            window.dispatchEvent(new Event("addresses-updated"));
             setStatusMessage("Address deleted successfully.");
         } catch (err) {
             setError(err.message || "Failed to delete address.");

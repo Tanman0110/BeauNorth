@@ -1,11 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ShoppingCart, ChevronDown, MapPin } from "lucide-react";
+import { ShoppingCart, ChevronDown, MapPin, Check } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import { getMyCart } from "../api/cartApi";
 import { getCategories } from "../api/categoryApi";
 import { getProducts } from "../api/productApi";
-import { getMyAddresses } from "../api/userAddressApi";
+import { getMyAddresses, updateMyAddress } from "../api/userAddressApi";
 import beauNorthLogo from "../assets/beau_north_logo.png";
 import "./Navbar.css";
 
@@ -75,9 +75,11 @@ export default function Navbar() {
         loadUserData();
 
         window.addEventListener("cart-updated", loadUserData);
+        window.addEventListener("addresses-updated", loadUserData);
 
         return () => {
             window.removeEventListener("cart-updated", loadUserData);
+            window.removeEventListener("addresses-updated", loadUserData);
         };
     }, [isAuthenticated]);
 
@@ -103,12 +105,22 @@ export default function Navbar() {
         };
     }, []);
 
-    const primaryAddress = useMemo(() => {
-        if (!addresses.length) return null;
+    const sortedAddresses = useMemo(() => {
+        if (!addresses.length) return [];
 
-        const defaultAddress = addresses.find((address) => address.isDefault);
-        return defaultAddress || addresses[0];
+        const defaultAddress = addresses.find((address) => address.isDefault) || addresses[0];
+
+        return [
+            defaultAddress,
+            ...addresses.filter(
+                (address) => address.userAddressId !== defaultAddress.userAddressId
+            )
+        ];
     }, [addresses]);
+
+    const primaryAddress = useMemo(() => {
+        return sortedAddresses[0] || null;
+    }, [sortedAddresses]);
 
     const searchSuggestions = useMemo(() => {
         const term = searchTerm.trim().toLowerCase();
@@ -167,6 +179,33 @@ export default function Navbar() {
         navigate(`/products/${suggestion.id}`);
     }
 
+    async function handleSelectAddress(address) {
+        try {
+            if (address.isDefault) {
+                setShowAddressDropdown(false);
+                return;
+            }
+
+            await updateMyAddress(address.userAddressId, {
+                fullName: address.fullName,
+                addressLine1: address.addressLine1,
+                addressLine2: address.addressLine2 || "",
+                city: address.city,
+                state: address.state,
+                postalCode: address.postalCode,
+                country: address.country,
+                isDefault: true
+            });
+
+            const refreshedAddresses = await getMyAddresses();
+            setAddresses(refreshedAddresses || []);
+            window.dispatchEvent(new Event("addresses-updated"));
+            setShowAddressDropdown(false);
+        } catch {
+            setShowAddressDropdown(false);
+        }
+    }
+
     return (
         <header className="site-header">
             <div className="navbar-top">
@@ -186,7 +225,10 @@ export default function Navbar() {
                             <button
                                 className="navbar-shipping-button"
                                 type="button"
-                                onClick={() => setShowAddressDropdown((prev) => !prev)}
+                                onClick={() => {
+                                    setShowAccountDropdown(false);
+                                    setShowAddressDropdown((prev) => !prev);
+                                }}
                             >
                                 <MapPin size={15} />
                                 <div className="navbar-shipping-text">
@@ -200,23 +242,31 @@ export default function Navbar() {
 
                             {showAddressDropdown && (
                                 <div className="navbar-address-dropdown">
-                                    {addresses.map((address) => (
-                                        <button
-                                            key={address.userAddressId}
-                                            type="button"
-                                            className="navbar-address-item"
-                                            onClick={() => {
-                                                setShowAddressDropdown(false);
-                                                navigate("/account");
-                                            }}
-                                        >
-                                            <strong>{address.fullName}</strong>
-                                            <span>{address.addressLine1}</span>
-                                            <span>
-                                                {address.city}, {address.state} {address.postalCode}
-                                            </span>
-                                        </button>
-                                    ))}
+                                    {sortedAddresses.map((address) => {
+                                        const isSelected = address.isDefault;
+
+                                        return (
+                                            <button
+                                                key={address.userAddressId}
+                                                type="button"
+                                                className={`navbar-address-item${isSelected ? " navbar-address-item-selected" : ""}`}
+                                                onClick={() => handleSelectAddress(address)}
+                                            >
+                                                <div className="navbar-address-item-content">
+                                                    <strong>{address.fullName}</strong>
+                                                    <span>{address.addressLine1}</span>
+                                                    {address.addressLine2 && <span>{address.addressLine2}</span>}
+                                                    <span>
+                                                        {address.city}, {address.state} {address.postalCode}
+                                                    </span>
+                                                </div>
+
+                                                {isSelected && (
+                                                    <Check size={16} className="navbar-address-check" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
 
                                     <button
                                         type="button"
@@ -273,7 +323,10 @@ export default function Navbar() {
                             <button
                                 type="button"
                                 className="navbar-account-button"
-                                onClick={() => setShowAccountDropdown((prev) => !prev)}
+                                onClick={() => {
+                                    setShowAddressDropdown(false);
+                                    setShowAccountDropdown((prev) => !prev);
+                                }}
                             >
                                 Hello, {user?.firstName}
                                 <ChevronDown size={15} />
@@ -329,15 +382,18 @@ export default function Navbar() {
                     All
                 </Link>
 
-                {categories.map((category) => (
-                    <Link
-                        key={category.categoryId}
-                        to={`/categories/${category.categoryId}`}
-                        className="navbar-sub-link"
-                    >
-                        {category.name}
-                    </Link>
-                ))}
+                {categories
+                    .filter((category) => category.name?.toLowerCase() !== "archive")
+                    .slice(0, 20)
+                    .map((category) => (
+                        <Link
+                            key={category.categoryId}
+                            to={`/categories/${category.categoryId}`}
+                            className="navbar-sub-link"
+                        >
+                            {category.name}
+                        </Link>
+                    ))}
             </div>
         </header>
     );

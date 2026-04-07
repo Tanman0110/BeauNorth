@@ -137,15 +137,14 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                <div className="home-hero-panel">
-                    <div className="home-hero-panel-content">
-                        <h2>Meet our Mascot!</h2>
-                        <img
-                            src={mascot}
-                            alt="Beau North mascot"
-                            className="home-hero-mascot"
-                        />
-                    </div>
+                <div className="home-hero-panel-content">
+                    <p className="home-hero-panel-eyebrow">Beau North</p>
+                    <h2>Meet our Mascot!</h2>
+                    <img
+                        src={mascot}
+                        alt="Beau North mascot"
+                        className="home-hero-mascot"
+                    />
                 </div>
             </section>
 
