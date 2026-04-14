@@ -1,81 +1,370 @@
 .account-page {
     min-height: 100vh;
-    background: #f8f8f8;
-    padding: 2rem;
+    background: #f6f6f4;
+    padding: 2.25rem 2rem 4rem;
 }
 
-.account-card {
-    max-width: 700px;
+.account-wrapper {
+    max-width: 1120px;
     margin: 0 auto;
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+}
+
+.account-header {
+    margin-bottom: 2rem;
+    text-align: center;
 }
 
 .account-title {
-    margin: 0 0 1rem;
-    font-size: 2rem;
-}
-
-.account-form {
-    display: grid;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.account-section-title {
-    margin: 1rem 0 0.5rem;
-    font-size: 1.25rem;
-}
-
-.account-label {
-    display: grid;
-    gap: 0.4rem;
-    font-weight: 600;
-}
-
-.account-input {
-    padding: 0.85rem 1rem;
-    border: 1px solid #cccccc;
-    border-radius: 10px;
-}
-
-.account-button {
-    padding: 0.9rem 1rem;
-    border: none;
-    border-radius: 10px;
-    background: #111111;
-    color: #ffffff;
+    margin: 0;
+    font-size: 2.3rem;
     font-weight: 700;
-    cursor: pointer;
+    letter-spacing: -0.02em;
+    color: #161616;
 }
 
-.account-delete-button {
-    padding: 0.9rem 1rem;
-    border: none;
-    border-radius: 10px;
-    background: crimson;
-    color: #ffffff;
-    font-weight: 700;
-    cursor: pointer;
+.account-messages {
+    margin-bottom: 1rem;
 }
 
-.account-danger-zone {
-    border-top: 1px solid #eeeeee;
-    padding-top: 1rem;
+.account-success,
+.account-error {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 
 .account-success {
-    color: green;
-    font-weight: 600;
+    color: #1f7a39;
 }
 
 .account-error {
-    color: crimson;
-    font-weight: 600;
+    color: #b42318;
 }
+
+.account-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+}
+
+.account-section-head {
+    margin-bottom: 1.25rem;
+}
+
+.account-section-title {
+    margin: 0 0 0.55rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #161616;
+    text-align: center;
+}
+
+.account-section-line {
+    width: 100%;
+    max-width: 300px;
+    height: 3px;
+    margin: 0 auto;
+    background: #1f1f1f;
+    border-radius: 999px;
+}
+
+.account-info-list {
+    display: grid;
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.account-info-row {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.45;
+    color: #161616;
+}
+
+.account-info-label {
+    font-weight: 700;
+}
+
+.account-info-value {
+    font-weight: 500;
+}
+
+.account-form,
+.account-address-form {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.account-address-form-spaced {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e4e4df;
+}
+
+.account-field {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.account-field-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #161616;
+}
+
+.account-input {
+    width: 100%;
+    padding: 0.7rem 0;
+    border: none;
+    border-bottom: 1px solid #d6d6d1;
+    background: transparent;
+    font-size: 0.98rem;
+    color: #161616;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+    .account-input:focus {
+        border-bottom-color: #111111;
+    }
+
+.account-button-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin-top: 1rem;
+}
+
+.account-button-stack-actions {
+    margin-top: 1.1rem;
+}
+
+.account-inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.account-address-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.account-button {
+    appearance: none;
+    border: 1px solid transparent;
+    background: linear-gradient(180deg, #1d1d1d 0%, #111111 100%);
+    color: #ffffff;
+    min-width: 170px;
+    padding: 0.82rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.94rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+    .account-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .account-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+.account-button-secondary {
+    background: #ffffff;
+    color: #161616;
+    border-color: #d8d8d2;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.account-button-danger {
+    background: linear-gradient(180deg, #c93b2d 0%, #b42318 100%);
+    color: #ffffff;
+}
+
+.account-address-list {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.account-address-item {
+    padding-bottom: 0.25rem;
+}
+
+.account-address-card {
+    border: 1px solid #e3e3de;
+    background: #fbfbf9;
+    border-radius: 18px;
+    padding: 1.1rem 1.1rem 1rem;
+}
+
+.account-address-card-editing {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.account-address-text p {
+    margin: 0.15rem 0;
+    color: #161616;
+    line-height: 1.35;
+    font-size: 0.98rem;
+}
+
+.account-address-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.45rem;
+}
+
+.account-address-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #161616;
+}
+
+.account-address-default {
+    font-size: 0.8rem;
+    color: #666666;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #ecece7;
+}
+
+.account-default-row {
+    margin-top: 0.85rem;
+    min-height: 24px;
+}
+
+.account-radio-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.92rem;
+    color: #161616;
+}
+
+    .account-radio-label input {
+        accent-color: #111111;
+    }
+
+.account-edit-address-fields {
+    flex: 1;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.account-trash-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #efc5c0;
+    border-radius: 12px;
+    background: #fff4f2;
+    color: #c23326;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 1.5rem;
+    transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+    .account-trash-button:hover {
+        transform: translateY(-1px);
+        background: #ffeceb;
+        box-shadow: 0 8px 20px rgba(194, 51, 38, 0.12);
+    }
+
+.account-subtitle {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #161616;
+}
+
+.account-address-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.account-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #161616;
+    font-size: 0.95rem;
+    margin-top: 0.2rem;
+}
+
+    .account-checkbox input {
+        accent-color: #111111;
+    }
 
 .account-status {
     padding: 2rem;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .account-columns {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .account-page {
+        padding: 2rem 1rem 3rem;
+    }
+
+    .account-title {
+        font-size: 1.9rem;
+    }
+
+    .account-section-title {
+        font-size: 1.25rem;
+    }
+
+    .account-address-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .account-button {
+        width: 100%;
+    }
+
+    .account-address-action-row,
+    .account-inline-actions {
+        flex-direction: column;
+    }
+
+    .account-address-card-editing {
+        flex-direction: column;
+    }
+
+    .account-trash-button {
+        margin-top: 0.25rem;
+        align-self: flex-end;
+    }
 }
