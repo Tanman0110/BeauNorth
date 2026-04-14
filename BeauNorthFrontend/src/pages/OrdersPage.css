@@ -1,0 +1,63 @@
+.orders-page {
+    min-height: 100vh;
+    background: #f8f8f8;
+    padding: 2rem;
+}
+
+.orders-section {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.orders-title {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+}
+
+.orders-success {
+    color: green;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.orders-error {
+    color: crimson;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.orders-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.order-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.order-items {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.order-item-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: #555555;
+}
+
+.orders-status {
+    padding: 2rem;
+}

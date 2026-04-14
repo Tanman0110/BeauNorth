@@ -1,0 +1,108 @@
+.checkout-page {
+    min-height: 100vh;
+    background: #f8f8f8;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+}
+
+.checkout-card {
+    width: 100%;
+    max-width: 700px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+}
+
+.checkout-title {
+    margin: 0 0 1.5rem;
+    font-size: 2rem;
+}
+
+.checkout-form {
+    display: grid;
+    gap: 1rem;
+}
+
+.checkout-label {
+    display: grid;
+    gap: 0.4rem;
+    font-weight: 600;
+}
+
+.checkout-input {
+    padding: 0.85rem 1rem;
+    border: 1px solid #cccccc;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.checkout-address-card {
+    background: #f8f8f8;
+    border: 1px solid #e4e4e4;
+    border-radius: 14px;
+    padding: 1rem;
+}
+
+.checkout-address-name {
+    margin: 0 0 0.4rem;
+    font-weight: 700;
+    color: #111111;
+}
+
+.checkout-address-line {
+    margin: 0.2rem 0;
+    color: #555555;
+}
+
+.checkout-address-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.checkout-address-link,
+.checkout-manage-addresses-button {
+    display: inline-block;
+    text-decoration: none;
+    background: #111111;
+    color: #ffffff;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.checkout-button {
+    margin-top: 0.5rem;
+    padding: 0.95rem 1rem;
+    border: none;
+    border-radius: 10px;
+    background: #111111;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+    .checkout-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+.checkout-no-addresses {
+    display: grid;
+    gap: 1rem;
+}
+
+.checkout-no-addresses-text {
+    margin: 0;
+    color: #555555;
+}
+
+.checkout-error {
+    color: crimson;
+    font-weight: 600;
+}
+
+.checkout-status {
+    padding: 2rem;
+}
