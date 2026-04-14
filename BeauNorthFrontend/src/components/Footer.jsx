@@ -33,9 +33,6 @@ export default function Footer() {
                     <Link to="/orders" className="site-footer-link">
                         Orders
                     </Link>
-                    <Link to="/login" className="site-footer-link">
-                        Sign In
-                    </Link>
                 </div>
 
                 <div className="site-footer-column">
@@ -46,9 +43,6 @@ export default function Footer() {
                     <Link to="/forgot-password" className="site-footer-link">
                         Password Help
                     </Link>
-                    <span className="site-footer-text">
-                        Mon–Fri · 9am–5pm
-                    </span>
                 </div>
             </div>
 
