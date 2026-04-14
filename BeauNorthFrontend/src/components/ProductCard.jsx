@@ -3,7 +3,10 @@ import "./ProductCard.css";
 
 export default function ProductCard({ product }) {
     return (
-        <article className="product-card">
+        <Link
+            to={`/products/${product.productId}`}
+            className="product-card"
+        >
             <img
                 src={product.imageUrl}
                 alt={product.name}
@@ -24,14 +27,7 @@ export default function ProductCard({ product }) {
                 <p className="product-card-price">
                     ${Number(product.price).toFixed(2)}
                 </p>
-
-                <Link
-                    to={`/products/${product.productId}`}
-                    className="product-card-button"
-                >
-                    View Details
-                </Link>
             </div>
-        </article>
+        </Link>
     );
 }
