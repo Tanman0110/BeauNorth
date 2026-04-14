@@ -35,6 +35,41 @@
     padding: 0.85rem 1rem;
     border: 1px solid #cccccc;
     border-radius: 10px;
+    background: #ffffff;
+}
+
+.checkout-address-card {
+    background: #f8f8f8;
+    border: 1px solid #e4e4e4;
+    border-radius: 14px;
+    padding: 1rem;
+}
+
+.checkout-address-name {
+    margin: 0 0 0.4rem;
+    font-weight: 700;
+    color: #111111;
+}
+
+.checkout-address-line {
+    margin: 0.2rem 0;
+    color: #555555;
+}
+
+.checkout-address-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.checkout-address-link,
+.checkout-manage-addresses-button {
+    display: inline-block;
+    text-decoration: none;
+    background: #111111;
+    color: #ffffff;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
 }
 
 .checkout-button {
@@ -46,6 +81,21 @@
     color: #ffffff;
     font-weight: 700;
     cursor: pointer;
+}
+
+    .checkout-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+.checkout-no-addresses {
+    display: grid;
+    gap: 1rem;
+}
+
+.checkout-no-addresses-text {
+    margin: 0;
+    color: #555555;
 }
 
 .checkout-error {

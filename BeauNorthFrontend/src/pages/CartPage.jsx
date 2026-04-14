@@ -165,13 +165,6 @@ export default function CartPage() {
                             >
                                 Checkout
                             </button>
-
-                            <button
-                                className="cart-clear-button"
-                                onClick={handleClearCart}
-                            >
-                                Clear Cart
-                            </button>
                         </aside>
                     </div>
                 )}

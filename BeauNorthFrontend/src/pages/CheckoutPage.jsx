@@ -1,12 +1,17 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { checkout } from "../api/checkoutApi";
+import { getMyAddresses } from "../api/userAddressApi";
 import "./CheckoutPage.css";
 
 export default function CheckoutPage() {
     const navigate = useNavigate();
     const { isAuthenticated, loading } = useAuth();
+
+    const [addresses, setAddresses] = useState([]);
+    const [selectedAddressId, setSelectedAddressId] = useState("");
+    const [loadingAddresses, setLoadingAddresses] = useState(true);
 
     const [formData, setFormData] = useState({
         fullName: "",
@@ -22,7 +27,78 @@ export default function CheckoutPage() {
     const [error, setError] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
-    if (loading) {
+    useEffect(() => {
+        async function loadAddresses() {
+            try {
+                const data = await getMyAddresses();
+                setAddresses(data);
+
+                if (data.length > 0) {
+                    const defaultAddress =
+                        data.find((address) => address.isDefault) || data[0];
+
+                    setSelectedAddressId(String(defaultAddress.userAddressId));
+                    applyAddressToForm(defaultAddress);
+                }
+            } catch (err) {
+                setError(err.message || "Failed to load saved addresses.");
+            } finally {
+                setLoadingAddresses(false);
+            }
+        }
+
+        if (!loading && isAuthenticated) {
+            loadAddresses();
+        } else if (!loading) {
+            setLoadingAddresses(false);
+        }
+    }, [loading, isAuthenticated]);
+
+    function applyAddressToForm(address) {
+        setFormData((prev) => ({
+            ...prev,
+            fullName: address.fullName || "",
+            addressLine1: address.addressLine1 || "",
+            addressLine2: address.addressLine2 || "",
+            city: address.city || "",
+            state: address.state || "",
+            postalCode: address.postalCode || "",
+            country: address.country || ""
+        }));
+    }
+
+    function handleAddressChange(event) {
+        const nextAddressId = event.target.value;
+        setSelectedAddressId(nextAddressId);
+
+        const selectedAddress = addresses.find(
+            (address) => String(address.userAddressId) === nextAddressId
+        );
+
+        if (selectedAddress) {
+            applyAddressToForm(selectedAddress);
+        }
+    }
+
+    function handlePaymentProviderChange(event) {
+        const { value } = event.target;
+
+        setFormData((prev) => ({
+            ...prev,
+            paymentProvider: value
+        }));
+    }
+
+    const selectedAddress = useMemo(() => {
+        return (
+            addresses.find(
+                (address) =>
+                    String(address.userAddressId) === String(selectedAddressId)
+            ) || null
+        );
+    }, [addresses, selectedAddressId]);
+
+    if (loading || loadingAddresses) {
         return <p className="checkout-status">Loading checkout...</p>;
     }
 
@@ -30,78 +106,33 @@ export default function CheckoutPage() {
         return <Navigate to="/login" replace />;
     }
 
-    function handleChange(event) {
-        const { name, value } = event.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value
-        }));
-    }
-
-    function isValidFullName(name) {
-        return /^[A-Za-z]+([ '-][A-Za-z]+)*(\s[A-Za-z]+([ '-][A-Za-z]+)*)*$/.test(
-            name
-        );
-    }
-
-    function isValidLocationName(value) {
-        return /^[A-Za-z]+([ '-][A-Za-z]+)*$/.test(value);
-    }
-
-    function isValidPostalCode(value) {
-        return /^[A-Za-z0-9 -]+$/.test(value);
-    }
-
     function validateForm() {
-        const fullName = formData.fullName.trim();
-        const addressLine1 = formData.addressLine1.trim();
-        const city = formData.city.trim();
-        const state = formData.state.trim();
-        const postalCode = formData.postalCode.trim();
-        const country = formData.country.trim();
-
-        if (!fullName) {
-            return "Full name is required.";
+        if (!selectedAddress) {
+            return "Please select a shipping address.";
         }
 
-        if (!isValidFullName(fullName)) {
-            return "Full name contains invalid characters.";
+        if (!formData.fullName.trim()) {
+            return "Selected address is missing a full name.";
         }
 
-        if (!addressLine1) {
-            return "Address line 1 is required.";
+        if (!formData.addressLine1.trim()) {
+            return "Selected address is missing address line 1.";
         }
 
-        if (!city) {
-            return "City is required.";
+        if (!formData.city.trim()) {
+            return "Selected address is missing a city.";
         }
 
-        if (!isValidLocationName(city)) {
-            return "City contains invalid characters.";
+        if (!formData.state.trim()) {
+            return "Selected address is missing a state.";
         }
 
-        if (!state) {
-            return "State is required.";
+        if (!formData.postalCode.trim()) {
+            return "Selected address is missing a postal code.";
         }
 
-        if (!isValidLocationName(state)) {
-            return "State contains invalid characters.";
-        }
-
-        if (!postalCode) {
-            return "Postal code is required.";
-        }
-
-        if (!isValidPostalCode(postalCode)) {
-            return "Postal code contains invalid characters.";
-        }
-
-        if (!country) {
-            return "Country is required.";
-        }
-
-        if (!isValidLocationName(country)) {
-            return "Country contains invalid characters.";
+        if (!formData.country.trim()) {
+            return "Selected address is missing a country.";
         }
 
         return "";
@@ -148,101 +179,82 @@ export default function CheckoutPage() {
             <section className="checkout-card">
                 <h1 className="checkout-title">Checkout</h1>
 
-                <form className="checkout-form" onSubmit={handleSubmit}>
-                    <label className="checkout-label">
-                        Full Name
-                        <input
-                            className="checkout-input"
-                            name="fullName"
-                            value={formData.fullName}
-                            onChange={handleChange}
-                        />
-                    </label>
+                {addresses.length === 0 ? (
+                    <div className="checkout-no-addresses">
+                        <p className="checkout-no-addresses-text">
+                            You need a saved shipping address before placing an order.
+                        </p>
 
-                    <label className="checkout-label">
-                        Address Line 1
-                        <input
-                            className="checkout-input"
-                            name="addressLine1"
-                            value={formData.addressLine1}
-                            onChange={handleChange}
-                        />
-                    </label>
+                        <Link to="/account" className="checkout-manage-addresses-button">
+                            Manage Addresses
+                        </Link>
+                    </div>
+                ) : (
+                    <form className="checkout-form" onSubmit={handleSubmit}>
+                        <label className="checkout-label">
+                            Shipping Address
+                            <select
+                                className="checkout-input"
+                                value={selectedAddressId}
+                                onChange={handleAddressChange}
+                            >
+                                {addresses.map((address) => (
+                                    <option
+                                        key={address.userAddressId}
+                                        value={address.userAddressId}
+                                    >
+                                        {address.fullName} - {address.addressLine1}, {address.city}, {address.state}
+                                        {address.isDefault ? " (Default)" : ""}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
 
-                    <label className="checkout-label">
-                        Address Line 2
-                        <input
-                            className="checkout-input"
-                            name="addressLine2"
-                            value={formData.addressLine2}
-                            onChange={handleChange}
-                        />
-                    </label>
+                        {selectedAddress && (
+                            <div className="checkout-address-card">
+                                <p className="checkout-address-name">{formData.fullName}</p>
+                                <p className="checkout-address-line">{formData.addressLine1}</p>
+                                {formData.addressLine2 && (
+                                    <p className="checkout-address-line">{formData.addressLine2}</p>
+                                )}
+                                <p className="checkout-address-line">
+                                    {formData.city}, {formData.state} {formData.postalCode}
+                                </p>
+                                <p className="checkout-address-line">{formData.country}</p>
+                            </div>
+                        )}
 
-                    <label className="checkout-label">
-                        City
-                        <input
-                            className="checkout-input"
-                            name="city"
-                            value={formData.city}
-                            onChange={handleChange}
-                        />
-                    </label>
+                        <label className="checkout-label">
+                            Payment Provider
+                            <select
+                                className="checkout-input"
+                                name="paymentProvider"
+                                value={formData.paymentProvider}
+                                onChange={handlePaymentProviderChange}
+                            >
+                                <option value="Demo">Demo</option>
+                                <option value="Stripe">Stripe</option>
+                                <option value="PayPal">PayPal</option>
+                            </select>
+                        </label>
 
-                    <label className="checkout-label">
-                        State
-                        <input
-                            className="checkout-input"
-                            name="state"
-                            value={formData.state}
-                            onChange={handleChange}
-                        />
-                    </label>
+                        <div className="checkout-address-actions">
+                            <Link to="/account" className="checkout-address-link">
+                                Manage Addresses
+                            </Link>
+                        </div>
 
-                    <label className="checkout-label">
-                        Postal Code
-                        <input
-                            className="checkout-input"
-                            name="postalCode"
-                            value={formData.postalCode}
-                            onChange={handleChange}
-                        />
-                    </label>
+                        {error && <p className="checkout-error">{error}</p>}
 
-                    <label className="checkout-label">
-                        Country
-                        <input
-                            className="checkout-input"
-                            name="country"
-                            value={formData.country}
-                            onChange={handleChange}
-                        />
-                    </label>
-
-                    <label className="checkout-label">
-                        Payment Provider
-                        <select
-                            className="checkout-input"
-                            name="paymentProvider"
-                            value={formData.paymentProvider}
-                            onChange={handleChange}
+                        <button
+                            className="checkout-button"
+                            type="submit"
+                            disabled={submitting || !selectedAddress}
                         >
-                            <option value="Demo">Demo</option>
-                            <option value="Stripe">Stripe</option>
-                            <option value="PayPal">PayPal</option>
-                        </select>
-                    </label>
-
-                    {error && <p className="checkout-error">{error}</p>}
-
-                    <button
-                        className="checkout-button"
-                        type="submit"
-                        disabled={submitting}
-                    >
-                        {submitting ? "Placing Order..." : "Place Order"}
-                    </button>
-                </form>
+                            {submitting ? "Placing Order..." : "Place Order"}
+                        </button>
+                    </form>
+                )}
             </section>
         </main>
     );
