@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using BeauNorthAPI.Models;
 
 namespace BeauNorthAPI.DTOs.Products
 {
@@ -12,8 +11,10 @@ namespace BeauNorthAPI.DTOs.Products
         [MaxLength(150)]
         public string Name { get; set; } = string.Empty;
 
-        [MaxLength(2000)]
-        public string? Description { get; set; }
+        [MaxLength(500)]
+        public string? ShortDescription { get; set; }
+
+        public string? LongDescriptionHtml { get; set; }
 
         [Range(typeof(decimal), "0.01", "999999.99")]
         public decimal Price { get; set; }
@@ -21,14 +22,10 @@ namespace BeauNorthAPI.DTOs.Products
         [Range(typeof(decimal), "0.00", "999999.99")]
         public decimal BaseCost { get; set; }
 
-        [Url]
-        [MaxLength(500)]
-        public string? ImageUrl { get; set; }
-
         [MaxLength(200)]
         public string? SizeOptions { get; set; }
 
-        [MaxLength(200)]
+        [MaxLength(500)]
         public string? ColorOptions { get; set; }
 
         [Range(0, int.MaxValue)]
@@ -40,7 +37,8 @@ namespace BeauNorthAPI.DTOs.Products
         public string Sku { get; set; } = string.Empty;
 
         [Required]
-        public ProductAudience Audience { get; set; } = ProductAudience.All;
+        [MaxLength(20)]
+        public string Audience { get; set; } = "All";
 
         [MaxLength(50)]
         public string FulfillmentProvider { get; set; } = "Manual";
@@ -60,5 +58,7 @@ namespace BeauNorthAPI.DTOs.Products
         public bool IsFulfillmentEnabled { get; set; } = false;
 
         public bool IsActive { get; set; } = true;
+
+        public List<ProductImageDto> ProductImages { get; set; } = new();
     }
 }

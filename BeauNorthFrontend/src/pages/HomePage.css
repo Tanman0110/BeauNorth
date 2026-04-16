@@ -85,25 +85,25 @@
     padding: 1.35rem;
 }
 
-    .home-hero-panel-eyebrow {
-        margin: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: 0.74rem;
-        font-weight: 700;
-        color: #7a7a7a;
-        text-align: center;
-    }
+.home-hero-panel-eyebrow {
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #7a7a7a;
+    text-align: center;
+}
 
-    .home-hero-panel-content h2 {
-        margin: 0;
-        color: #111111;
-        font-size: clamp(2rem, 3.2vw, 3rem);
-        font-weight: 800;
-        line-height: 1.02;
-        letter-spacing: -0.03em;
-        text-align: center;
-    }
+.home-hero-panel-content h2 {
+    margin: 0;
+    color: #111111;
+    font-size: clamp(2rem, 3.2vw, 3rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    text-align: center;
+}
 
 .home-hero-mascot {
     width: 100%;
@@ -175,35 +175,19 @@
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
 }
 
-.home-carousel-card--hidden {
-    opacity: 0;
-}
-
-.home-carousel-card--far,
-.home-carousel-card--mid,
-.home-carousel-card--center {
-    opacity: 1;
-}
-
-.home-carousel-card--far,
-.home-carousel-card--mid,
-.home-carousel-card--center {
-    will-change: transform;
-}
-
-.home-carousel-card--far-left,
-.home-carousel-card--far-right,
-.home-carousel-card--left,
-.home-carousel-card--right,
-.home-carousel-card--center {
-    opacity: 1;
-}
-
 .home-carousel-image {
     width: 100%;
     height: 260px;
     object-fit: cover;
     background: #eeeeee;
+}
+
+.home-carousel-image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777777;
+    font-weight: 600;
 }
 
 .home-carousel-card-body {

@@ -3,6 +3,7 @@ using System;
 using BeauNorthApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BeauNorthAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260416192846_AddShortAndLongProductDescriptions")]
+    partial class AddShortAndLongProductDescriptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -329,8 +332,8 @@ namespace BeauNorthAPI.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("ColorOptions")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -355,6 +358,10 @@ namespace BeauNorthAPI.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -401,37 +408,6 @@ namespace BeauNorthAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("BeauNorthAPI.Models.ProductImage", b =>
-                {
-                    b.Property<int>("ProductImageId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProductImageId"));
-
-                    b.Property<string>("ColorName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("ProductImageId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductImages");
                 });
 
             modelBuilder.Entity("BeauNorthAPI.Models.ShippingAddress", b =>
@@ -714,17 +690,6 @@ namespace BeauNorthAPI.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("BeauNorthAPI.Models.ProductImage", b =>
-                {
-                    b.HasOne("BeauNorthAPI.Models.Product", "Product")
-                        .WithMany("ProductImages")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("BeauNorthAPI.Models.ShippingAddress", b =>
                 {
                     b.HasOne("BeauNorthAPI.Models.Order", "Order")
@@ -773,8 +738,6 @@ namespace BeauNorthAPI.Migrations
                     b.Navigation("CartItems");
 
                     b.Navigation("OrderItems");
-
-                    b.Navigation("ProductImages");
                 });
 
             modelBuilder.Entity("BeauNorthAPI.Models.User", b =>

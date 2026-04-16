@@ -40,7 +40,7 @@ export default function CategoryPage() {
     }, [products, id]);
 
     if (loading) {
-        return <p className="category-page-status">Loading category...</p>;
+        return <p className="category-page-status loading-screen-space">Loading category...</p>;
     }
 
     if (error) {

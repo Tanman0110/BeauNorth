@@ -36,6 +36,7 @@ export default function ProductsPage() {
 
     const [searchTerm, setSearchTerm] = useState(initialSearch);
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [selectedAudience, setSelectedAudience] = useState("All");
 
     const [minPriceInput, setMinPriceInput] = useState("");
     const [maxPriceInput, setMaxPriceInput] = useState("");
@@ -69,19 +70,34 @@ export default function ProductsPage() {
         return ["All", ...new Set(categoryNames)];
     }, [products]);
 
+    const audiences = useMemo(() => {
+        const audienceValues = products
+            .map((product) => product.audience)
+            .filter(Boolean);
+
+        return ["All", ...new Set(audienceValues)];
+    }, [products]);
+
     const minPrice = useMemo(() => parsePriceInput(minPriceInput), [minPriceInput]);
     const maxPrice = useMemo(() => parsePriceInput(maxPriceInput), [maxPriceInput]);
 
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
             const productPrice = Number(product.price);
+            const searchableDescription =
+                product.shortDescription ||
+                product.description ||
+                "";
 
             const matchesSearch =
                 product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (product.description || "").toLowerCase().includes(searchTerm.toLowerCase());
+                searchableDescription.toLowerCase().includes(searchTerm.toLowerCase());
 
             const matchesCategory =
                 selectedCategory === "All" || product.category?.name === selectedCategory;
+
+            const matchesAudience =
+                selectedAudience === "All" || product.audience === selectedAudience;
 
             const matchesMinPrice =
                 minPrice === "" || productPrice >= minPrice;
@@ -89,13 +105,19 @@ export default function ProductsPage() {
             const matchesMaxPrice =
                 maxPrice === "" || productPrice <= maxPrice;
 
-            return matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice;
+            return (
+                matchesSearch &&
+                matchesCategory &&
+                matchesAudience &&
+                matchesMinPrice &&
+                matchesMaxPrice
+            );
         });
-    }, [products, searchTerm, selectedCategory, minPrice, maxPrice]);
+    }, [products, searchTerm, selectedCategory, selectedAudience, minPrice, maxPrice]);
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, selectedCategory, minPriceInput, maxPriceInput]);
+    }, [searchTerm, selectedCategory, selectedAudience, minPriceInput, maxPriceInput]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
 
@@ -136,7 +158,7 @@ export default function ProductsPage() {
     };
 
     if (loading) {
-        return <p className="products-status">Loading products...</p>;
+        return <p className="products-status loading-screen-space">Loading products...</p>;
     }
 
     if (error) {
@@ -166,6 +188,18 @@ export default function ProductsPage() {
                         {categories.map((category) => (
                             <option key={category} value={category}>
                                 {category}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        className="products-filter-input"
+                        value={selectedAudience}
+                        onChange={(e) => setSelectedAudience(e.target.value)}
+                    >
+                        {audiences.map((audience) => (
+                            <option key={audience} value={audience}>
+                                {audience}
                             </option>
                         ))}
                     </select>
@@ -229,8 +263,7 @@ export default function ProductsPage() {
                                     <button
                                         type="button"
                                         key={page}
-                                        className={`products-pagination-button products-page-number ${currentPage === page ? "active" : ""
-                                            }`}
+                                        className={`products-pagination-button products-page-number ${currentPage === page ? "active" : ""}`}
                                         onClick={(e) => {
                                             e.currentTarget.blur();
                                             setCurrentPage(page);

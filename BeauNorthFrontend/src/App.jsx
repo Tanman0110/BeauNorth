@@ -26,6 +26,7 @@ export default function App() {
             <AuthProvider>
                 <div className="app-shell">
                     <Navbar />
+
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/products" element={<ProductsPage />} />
@@ -46,6 +47,7 @@ export default function App() {
                             <Route path="/admin/catalog" element={<AdminCatalogPage />} />
                         </Route>
                     </Routes>
+
                     <Footer />
                 </div>
             </AuthProvider>

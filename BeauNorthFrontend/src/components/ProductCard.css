@@ -22,6 +22,14 @@
     display: block;
 }
 
+.product-card-image-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777777;
+    font-weight: 600;
+}
+
 .product-card-body {
     padding: 1rem;
 }

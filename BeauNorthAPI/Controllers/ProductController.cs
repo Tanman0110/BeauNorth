@@ -24,6 +24,7 @@ namespace BeauNorthAPI.Controllers
         {
             var products = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductImages)
                 .OrderBy(p => p.Name)
                 .ToListAsync();
 
@@ -36,6 +37,7 @@ namespace BeauNorthAPI.Controllers
         {
             var products = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductImages)
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.Name)
                 .ToListAsync();
@@ -49,6 +51,7 @@ namespace BeauNorthAPI.Controllers
         {
             var product = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductImages)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (product == null)
@@ -93,15 +96,15 @@ namespace BeauNorthAPI.Controllers
             {
                 CategoryId = request.CategoryId,
                 Name = request.Name.Trim(),
-                Description = request.Description?.Trim(),
+                ShortDescription = request.ShortDescription?.Trim(),
+                LongDescriptionHtml = request.LongDescriptionHtml,
                 Price = request.Price,
                 BaseCost = request.BaseCost,
-                ImageUrl = request.ImageUrl?.Trim(),
                 SizeOptions = request.SizeOptions?.Trim(),
                 ColorOptions = request.ColorOptions?.Trim(),
                 StockQuantity = request.StockQuantity,
                 Sku = normalizedSku,
-                Audience = request.Audience,
+                Audience = string.IsNullOrWhiteSpace(request.Audience) ? "All" : request.Audience.Trim(),
                 FulfillmentProvider = string.IsNullOrWhiteSpace(request.FulfillmentProvider)
                     ? "Manual"
                     : request.FulfillmentProvider.Trim(),
@@ -112,13 +115,24 @@ namespace BeauNorthAPI.Controllers
                 IsFulfillmentEnabled = request.IsFulfillmentEnabled,
                 IsActive = request.IsActive,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                ProductImages = request.ProductImages.Select(image => new ProductImage
+                {
+                    ColorName = image.ColorName.Trim(),
+                    ImageUrl = image.ImageUrl.Trim(),
+                    IsPrimary = image.IsPrimary
+                }).ToList()
             };
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, product);
+            var createdProduct = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                .FirstAsync(p => p.ProductId == product.ProductId);
+
+            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, createdProduct);
         }
 
         [Authorize(Roles = "Admin")]
@@ -130,7 +144,10 @@ namespace BeauNorthAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Products
+                .Include(p => p.ProductImages)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+
             if (product == null)
             {
                 return NotFound();
@@ -159,15 +176,15 @@ namespace BeauNorthAPI.Controllers
 
             product.CategoryId = request.CategoryId;
             product.Name = request.Name.Trim();
-            product.Description = request.Description?.Trim();
+            product.ShortDescription = request.ShortDescription?.Trim();
+            product.LongDescriptionHtml = request.LongDescriptionHtml;
             product.Price = request.Price;
             product.BaseCost = request.BaseCost;
-            product.ImageUrl = request.ImageUrl?.Trim();
             product.SizeOptions = request.SizeOptions?.Trim();
             product.ColorOptions = request.ColorOptions?.Trim();
             product.StockQuantity = request.StockQuantity;
             product.Sku = normalizedSku;
-            product.Audience = request.Audience;
+            product.Audience = string.IsNullOrWhiteSpace(request.Audience) ? "All" : request.Audience.Trim();
             product.FulfillmentProvider = string.IsNullOrWhiteSpace(request.FulfillmentProvider)
                 ? "Manual"
                 : request.FulfillmentProvider.Trim();
@@ -178,6 +195,18 @@ namespace BeauNorthAPI.Controllers
             product.IsFulfillmentEnabled = request.IsFulfillmentEnabled;
             product.IsActive = request.IsActive;
             product.UpdatedAt = DateTime.UtcNow;
+
+            product.ProductImages.Clear();
+
+            foreach (var image in request.ProductImages)
+            {
+                product.ProductImages.Add(new ProductImage
+                {
+                    ColorName = image.ColorName.Trim(),
+                    ImageUrl = image.ImageUrl.Trim(),
+                    IsPrimary = image.IsPrimary
+                });
+            }
 
             await _context.SaveChangesAsync();
 
@@ -201,19 +230,6 @@ namespace BeauNorthAPI.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private static string NormalizeAudience(string? audience)
-        {
-            var value = audience?.Trim();
-
-            return value switch
-            {
-                "Men" => "Men",
-                "Women" => "Women",
-                "Children" => "Children",
-                _ => "All"
-            };
         }
     }
 }

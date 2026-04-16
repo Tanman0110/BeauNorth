@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { getProductById } from "../api/productApi";
 import { addItemToCart } from "../api/cartApi";
 import { useAuth } from "../context/useAuth";
+import {
+    getAvailableImageColors,
+    getImagesForColor,
+    getPrimaryProductImage
+} from "../utils/productImages";
 import "./ProductDetailsPage.css";
 
 export default function ProductDetailsPage() {
@@ -15,6 +20,7 @@ export default function ProductDetailsPage() {
     const [error, setError] = useState("");
     const [selectedSize, setSelectedSize] = useState("");
     const [selectedColor, setSelectedColor] = useState("");
+    const [selectedImageUrl, setSelectedImageUrl] = useState("");
     const [quantity, setQuantity] = useState(1);
     const [message, setMessage] = useState("");
 
@@ -25,15 +31,23 @@ export default function ProductDetailsPage() {
                 setProduct(data);
 
                 const sizes = data.sizeOptions
-                    ? data.sizeOptions.split(",").map((size) => size.trim())
+                    ? data.sizeOptions.split(",").map((size) => size.trim()).filter(Boolean)
                     : [];
 
-                const colors = data.colorOptions
-                    ? data.colorOptions.split(",").map((color) => color.trim())
+                const colorsFromOptions = data.colorOptions
+                    ? data.colorOptions.split(",").map((color) => color.trim()).filter(Boolean)
                     : [];
 
-                if (sizes.length > 0) setSelectedSize(sizes[0]);
-                if (colors.length > 0) setSelectedColor(colors[0]);
+                const colorsFromImages = getAvailableImageColors(data);
+                const colors = colorsFromOptions.length > 0 ? colorsFromOptions : colorsFromImages;
+
+                if (sizes.length > 0) {
+                    setSelectedSize(sizes[0]);
+                }
+
+                const initialColor = colors[0] || "";
+                setSelectedColor(initialColor);
+                setSelectedImageUrl(getPrimaryProductImage(data, initialColor));
             } catch (err) {
                 setError(err.message || "Failed to load product.");
             } finally {
@@ -43,6 +57,26 @@ export default function ProductDetailsPage() {
 
         loadProduct();
     }, [id]);
+
+    const sizes = useMemo(() => {
+        if (!product?.sizeOptions) return [];
+        return product.sizeOptions.split(",").map((size) => size.trim()).filter(Boolean);
+    }, [product]);
+
+    const colors = useMemo(() => {
+        const colorOptionsFromField = product?.colorOptions
+            ? product.colorOptions.split(",").map((color) => color.trim()).filter(Boolean)
+            : [];
+
+        const colorOptionsFromImages = getAvailableImageColors(product);
+        return colorOptionsFromField.length > 0 ? colorOptionsFromField : colorOptionsFromImages;
+    }, [product]);
+
+    const visibleImages = useMemo(() => {
+        if (!product) return [];
+        const byColor = getImagesForColor(product, selectedColor);
+        return byColor.length > 0 ? byColor : (product.productImages || []);
+    }, [product, selectedColor]);
 
     function handleQuantityChange(event) {
         if (!product) return;
@@ -65,6 +99,11 @@ export default function ProductDetailsPage() {
         }
 
         setQuantity(numericValue);
+    }
+
+    function handleColorChange(color) {
+        setSelectedColor(color);
+        setSelectedImageUrl(getPrimaryProductImage(product, color));
     }
 
     async function handleAddToCart() {
@@ -92,7 +131,7 @@ export default function ProductDetailsPage() {
     }
 
     if (loading) {
-        return <p className="product-details-status">Loading product...</p>;
+        return <p className="product-details-status loading-screen-space">Loading product...</p>;
     }
 
     if (error && !product) {
@@ -103,14 +142,6 @@ export default function ProductDetailsPage() {
         return <p className="product-details-status">Product not found.</p>;
     }
 
-    const sizes = product.sizeOptions
-        ? product.sizeOptions.split(",").map((size) => size.trim())
-        : [];
-
-    const colors = product.colorOptions
-        ? product.colorOptions.split(",").map((color) => color.trim())
-        : [];
-
     return (
         <main className="product-details-page">
             <section className="product-details-section">
@@ -119,12 +150,38 @@ export default function ProductDetailsPage() {
                 </Link>
 
                 <div className="product-details-card">
-                    <div>
-                        <img
-                            src={product.imageUrl}
-                            alt={product.name}
-                            className="product-details-image"
-                        />
+                    <div className="product-details-media-column">
+                        {selectedImageUrl ? (
+                            <img
+                                src={selectedImageUrl}
+                                alt={product.name}
+                                className="product-details-image"
+                            />
+                        ) : (
+                            <div className="product-details-image product-details-image-placeholder">
+                                No Image
+                            </div>
+                        )}
+
+                        {visibleImages.length > 1 && (
+                            <div className="product-details-thumbnails">
+                                {visibleImages.map((image) => (
+                                    <button
+                                        key={`${image.colorName}-${image.imageUrl}`}
+                                        type="button"
+                                        className={`product-details-thumbnail-button ${selectedImageUrl === image.imageUrl ? "active" : ""
+                                            }`}
+                                        onClick={() => setSelectedImageUrl(image.imageUrl)}
+                                    >
+                                        <img
+                                            src={image.imageUrl}
+                                            alt={`${product.name} ${image.colorName || ""}`}
+                                            className="product-details-thumbnail-image"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div>
@@ -138,9 +195,11 @@ export default function ProductDetailsPage() {
                             ${Number(product.price).toFixed(2)}
                         </p>
 
-                        <p className="product-details-description">
-                            {product.description}
-                        </p>
+                        {(product.shortDescription || product.description) && (
+                            <p className="product-details-description">
+                                {product.shortDescription || product.description}
+                            </p>
+                        )}
 
                         {sizes.length > 0 && (
                             <div className="product-details-field">
@@ -165,7 +224,7 @@ export default function ProductDetailsPage() {
                                 <select
                                     className="product-details-select"
                                     value={selectedColor}
-                                    onChange={(e) => setSelectedColor(e.target.value)}
+                                    onChange={(e) => handleColorChange(e.target.value)}
                                 >
                                     {colors.map((color) => (
                                         <option key={color} value={color}>
@@ -201,6 +260,13 @@ export default function ProductDetailsPage() {
 
                         {message && <p className="product-details-message">{message}</p>}
                         {error && product && <p className="product-details-error">{error}</p>}
+
+                        {product.longDescriptionHtml && (
+                            <div
+                                className="product-long-description prose-content"
+                                dangerouslySetInnerHTML={{ __html: product.longDescriptionHtml }}
+                            />
+                        )}
                     </div>
                 </div>
             </section>

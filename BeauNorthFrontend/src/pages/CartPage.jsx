@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { getMyCart, removeCartItem, updateCartItem, clearMyCart } from "../api/cartApi";
+import { getPrimaryProductImage } from "../utils/productImages";
 import "./CartPage.css";
 
 export default function CartPage() {
@@ -32,7 +33,7 @@ export default function CartPage() {
     }, [loading, isAuthenticated]);
 
     if (loading || pageLoading) {
-        return <p className="cart-status">Loading cart...</p>;
+        return <p className="cart-status loading-screen-space">Loading cart...</p>;
     }
 
     if (!isAuthenticated) {
@@ -94,62 +95,75 @@ export default function CartPage() {
                 ) : (
                     <div className="cart-layout">
                         <div className="cart-items">
-                            {cartItems.map((item) => (
-                                <article key={item.cartItemId} className="cart-item">
-                                    <img
-                                        src={item.product?.imageUrl}
-                                        alt={item.product?.name}
-                                        className="cart-item-image"
-                                    />
+                            {cartItems.map((item) => {
+                                const imageUrl = getPrimaryProductImage(
+                                    item.product,
+                                    item.colorSelected || null
+                                );
 
-                                    <div className="cart-item-content">
-                                        <h2 className="cart-item-title">
-                                            {item.product?.name}
-                                        </h2>
-
-                                        {item.sizeSelected && (
-                                            <p className="cart-item-meta">
-                                                Size: {item.sizeSelected}
-                                            </p>
+                                return (
+                                    <article key={item.cartItemId} className="cart-item">
+                                        {imageUrl ? (
+                                            <img
+                                                src={imageUrl}
+                                                alt={item.product?.name}
+                                                className="cart-item-image"
+                                            />
+                                        ) : (
+                                            <div className="cart-item-image cart-item-image-placeholder">
+                                                No Image
+                                            </div>
                                         )}
 
-                                        {item.colorSelected && (
-                                            <p className="cart-item-meta">
-                                                Color: {item.colorSelected}
+                                        <div className="cart-item-content">
+                                            <h2 className="cart-item-title">
+                                                {item.product?.name}
+                                            </h2>
+
+                                            {item.sizeSelected && (
+                                                <p className="cart-item-meta">
+                                                    Size: {item.sizeSelected}
+                                                </p>
+                                            )}
+
+                                            {item.colorSelected && (
+                                                <p className="cart-item-meta">
+                                                    Color: {item.colorSelected}
+                                                </p>
+                                            )}
+
+                                            <p className="cart-item-price">
+                                                ${Number(item.unitPrice).toFixed(2)}
                                             </p>
-                                        )}
 
-                                        <p className="cart-item-price">
-                                            ${Number(item.unitPrice).toFixed(2)}
-                                        </p>
+                                            <div className="cart-item-actions">
+                                                <button
+                                                    className="cart-qty-button"
+                                                    onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1)}
+                                                >
+                                                    -
+                                                </button>
 
-                                        <div className="cart-item-actions">
-                                            <button
-                                                className="cart-qty-button"
-                                                onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1)}
-                                            >
-                                                -
-                                            </button>
+                                                <span className="cart-qty-value">{item.quantity}</span>
 
-                                            <span className="cart-qty-value">{item.quantity}</span>
+                                                <button
+                                                    className="cart-qty-button"
+                                                    onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
+                                                >
+                                                    +
+                                                </button>
 
-                                            <button
-                                                className="cart-qty-button"
-                                                onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
-                                            >
-                                                +
-                                            </button>
-
-                                            <button
-                                                className="cart-remove-button"
-                                                onClick={() => handleRemoveItem(item.cartItemId)}
-                                            >
-                                                Remove
-                                            </button>
+                                                <button
+                                                    className="cart-remove-button"
+                                                    onClick={() => handleRemoveItem(item.cartItemId)}
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                </article>
-                            ))}
+                                    </article>
+                                );
+                            })}
                         </div>
 
                         <aside className="cart-summary">
@@ -164,6 +178,13 @@ export default function CartPage() {
                                 onClick={() => navigate("/checkout")}
                             >
                                 Checkout
+                            </button>
+
+                            <button
+                                className="cart-clear-button"
+                                onClick={handleClearCart}
+                            >
+                                Clear Cart
                             </button>
                         </aside>
                     </div>

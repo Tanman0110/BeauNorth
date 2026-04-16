@@ -12,6 +12,7 @@ namespace BeauNorthApi.Data
         public DbSet<User> Users => Set<User>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Product> Products => Set<Product>();
+        public DbSet<ProductImage> ProductImages => Set<ProductImage>();
         public DbSet<Cart> Carts => Set<Cart>();
         public DbSet<CartItem> CartItems => Set<CartItem>();
         public DbSet<Order> Orders => Set<Order>();
@@ -82,6 +83,12 @@ namespace BeauNorthApi.Data
                 .WithOne(p => p.Category)
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.ProductImages)
+                .WithOne(pi => pi.Product)
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Orders)
@@ -154,11 +161,6 @@ namespace BeauNorthApi.Data
                 .WithOne(o => o.UserAddress)
                 .HasForeignKey(o => o.UserAddressId)
                 .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Product>()
-                .Property(p => p.Audience)
-                .HasConversion<string>()
-                .HasMaxLength(20);
         }
     }
 }

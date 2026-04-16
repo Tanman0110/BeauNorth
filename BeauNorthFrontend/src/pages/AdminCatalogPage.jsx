@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
 import {
     createCategory,
     deleteCategory,
@@ -13,9 +17,11 @@ import {
 } from "../api/adminProductsApi";
 import { getApliiqConfigStatus } from "../api/apliiqAdminApi";
 import "./AdminCatalogPage.css";
+import { Bold, Italic, List, ListOrdered, Link2 } from "lucide-react";
 
 const CATEGORY_PAGE_SIZE = 10;
 const PRODUCT_PAGE_SIZE = 10;
+const SIZE_OPTIONS = ["No Size", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 const emptyCategory = {
     name: "",
@@ -26,13 +32,13 @@ const emptyCategory = {
 const emptyProduct = {
     categoryId: "",
     name: "",
-    description: "",
+    shortDescription: "",
+    longDescriptionHtml: "",
     price: "",
     baseCost: "",
-    imageUrl: "",
-    sizeOptions: "",
-    colorOptions: "",
-    stockQuantity: "",
+    sizeOptions: [],
+    colorOptions: [],
+    stockQuantity: "9999",
     sku: "",
     audience: "All",
     fulfillmentProvider: "Manual",
@@ -41,8 +47,180 @@ const emptyProduct = {
     externalDesignId: "",
     externalSku: "",
     isFulfillmentEnabled: false,
-    isActive: true
+    isActive: true,
+    productImages: []
 };
+
+function sanitizeCurrencyRaw(value) {
+    const cleaned = value.replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    if (parts.length <= 1) {
+        return cleaned;
+    }
+
+    return `${parts[0]}.${parts.slice(1).join("").slice(0, 2)}`;
+}
+
+function parseCurrencyInput(value) {
+    const sanitized = sanitizeCurrencyRaw(String(value || ""));
+    if (!sanitized) {
+        return 0;
+    }
+
+    const parsed = Number.parseFloat(sanitized);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        return 0;
+    }
+
+    return parsed;
+}
+
+function formatCurrencyDisplay(value) {
+    if (value === "" || value === null || value === undefined) {
+        return "";
+    }
+
+    const numeric = parseCurrencyInput(value);
+
+    return `$${numeric.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })}`;
+}
+
+function unformatCurrencyDisplay(value) {
+    return sanitizeCurrencyRaw(String(value || ""));
+}
+
+function normalizeArrayLike(value) {
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    if (typeof value === "string" && value.trim()) {
+        return value.split(",").map((item) => item.trim()).filter(Boolean);
+    }
+
+    return [];
+}
+
+function normalizeProductImages(productImages) {
+    if (!Array.isArray(productImages)) {
+        return [];
+    }
+
+    return productImages.map((image, index) => ({
+        id: image.id ?? image.productImageId ?? `${image.colorName || "image"}-${index}-${Date.now()}`,
+        colorName: image.colorName || "",
+        imageUrl: image.imageUrl || "",
+        isPrimary: !!image.isPrimary
+    }));
+}
+
+function LongDescriptionEditor({ value, onChange }) {
+    const editor = useEditor({
+        immediatelyRender: false,
+        extensions: [
+            StarterKit.configure({
+                blockquote: false
+            }),
+            Link.configure({
+                openOnClick: false
+            }),
+            TextAlign.configure({
+                types: ["heading", "paragraph"]
+            })
+        ],
+        content: value || "",
+        onUpdate: ({ editor: currentEditor }) => {
+            onChange(currentEditor.getHTML());
+        }
+    });
+
+    useEffect(() => {
+        if (!editor) {
+            return;
+        }
+
+        const currentHtml = editor.getHTML();
+        const nextHtml = value || "";
+
+        if (currentHtml !== nextHtml) {
+            editor.commands.setContent(nextHtml, false);
+        }
+    }, [editor, value]);
+
+    if (!editor) {
+        return <div className="editor-shell">Loading editor...</div>;
+    }
+
+    return (
+        <div className="editor-shell">
+            <div className="editor-toolbar">
+                <button
+                    type="button"
+                    className={editor.isActive("bold") ? "active" : ""}
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                    title="Bold"
+                >
+                    <Bold size={16} />
+                </button>
+
+                <button
+                    type="button"
+                    className={editor.isActive("italic") ? "active" : ""}
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                    title="Italic"
+                >
+                    <Italic size={16} />
+                </button>
+
+                <button
+                    type="button"
+                    className={editor.isActive("bulletList") ? "active" : ""}
+                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                    title="Bullets"
+                >
+                    <List size={16} />
+                </button>
+
+                <button
+                    type="button"
+                    className={editor.isActive("orderedList") ? "active" : ""}
+                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                    title="Numbered List"
+                >
+                    <ListOrdered size={16} />
+                </button>
+
+                <button
+                    type="button"
+                    className={editor.isActive("link") ? "active" : ""}
+                    onClick={() => {
+                        const previous = editor.getAttributes("link").href || "";
+                        const url = window.prompt("Enter link URL", previous);
+
+                        if (url === null) {
+                            return;
+                        }
+
+                        if (url === "") {
+                            editor.chain().focus().unsetLink().run();
+                            return;
+                        }
+
+                        editor.chain().focus().setLink({ href: url }).run();
+                    }}
+                    title="Link"
+                >
+                    <Link2 size={16} />
+                </button>
+            </div>
+
+            <EditorContent editor={editor} className="tiptap-editor" />
+        </div>
+    );
+}
 
 export default function AdminCatalogPage() {
     const [categories, setCategories] = useState([]);
@@ -55,14 +233,30 @@ export default function AdminCatalogPage() {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
-    const [apliiqStatus, setApliiqStatus] = useState(null);
+    const [apliiqStatus, setApliiqStatus] = useState({ isValid: false });
     const [search, setSearch] = useState("");
     const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
     const [categoryPage, setCategoryPage] = useState(1);
     const [productPage, setProductPage] = useState(1);
+    const [showSizeDropdown, setShowSizeDropdown] = useState(false);
+    const [newColor, setNewColor] = useState("");
+    const [newImageColor, setNewImageColor] = useState("");
+    const [newImageUrl, setNewImageUrl] = useState("");
+    const sizeDropdownRef = useRef(null);
 
     useEffect(() => {
         loadData();
+    }, []);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (sizeDropdownRef.current && !sizeDropdownRef.current.contains(event.target)) {
+                setShowSizeDropdown(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     async function loadData() {
@@ -78,19 +272,15 @@ export default function AdminCatalogPage() {
             setCategories(categoriesData);
             setProducts(productsData);
 
-            const role = localStorage.getItem("role");
-            if (role === "Admin") {
-                try {
-                    const apliiqData = await getApliiqConfigStatus();
-                    setApliiqStatus(apliiqData);
-                } catch {
-                    setApliiqStatus({ isValid: false });
-                }
-            } else {
-                setApliiqStatus(null);
+            try {
+                const apliiqData = await getApliiqConfigStatus();
+                setApliiqStatus({ isValid: !!apliiqData?.isValid });
+            } catch {
+                setApliiqStatus({ isValid: false });
             }
         } catch (err) {
             setError(err.message || "Failed to load admin data.");
+            setApliiqStatus({ isValid: false });
         } finally {
             setLoading(false);
         }
@@ -109,6 +299,98 @@ export default function AdminCatalogPage() {
         setProductForm((prev) => ({
             ...prev,
             [name]: type === "checkbox" ? checked : value
+        }));
+    }
+
+    function toggleSize(size) {
+        setProductForm((prev) => {
+            const exists = prev.sizeOptions.includes(size);
+
+            return {
+                ...prev,
+                sizeOptions: exists
+                    ? prev.sizeOptions.filter((item) => item !== size)
+                    : [...prev.sizeOptions, size]
+            };
+        });
+    }
+
+    function addColorChip() {
+        const color = newColor.trim();
+        if (!color) return;
+
+        setProductForm((prev) => {
+            if (prev.colorOptions.some((item) => item.toLowerCase() === color.toLowerCase())) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                colorOptions: [...prev.colorOptions, color]
+            };
+        });
+
+        setNewColor("");
+    }
+
+    function removeColorChip(colorToRemove) {
+        setProductForm((prev) => ({
+            ...prev,
+            colorOptions: prev.colorOptions.filter((color) => color !== colorToRemove),
+            productImages: prev.productImages.filter((image) => image.colorName !== colorToRemove)
+        }));
+    }
+
+    function addProductImageMapping() {
+        const colorName = newImageColor.trim();
+        const imageUrl = newImageUrl.trim();
+
+        if (!colorName || !imageUrl) {
+            return;
+        }
+
+        setProductForm((prev) => ({
+            ...prev,
+            productImages: [
+                ...prev.productImages,
+                {
+                    id: `${colorName}-${Date.now()}`,
+                    colorName,
+                    imageUrl,
+                    isPrimary: prev.productImages.length === 0
+                }
+            ]
+        }));
+
+        setNewImageColor("");
+        setNewImageUrl("");
+    }
+
+    function removeProductImageMapping(id) {
+        setProductForm((prev) => {
+            const updated = prev.productImages.filter((image) => image.id !== id);
+
+            if (updated.length > 0 && !updated.some((image) => image.isPrimary)) {
+                updated[0] = {
+                    ...updated[0],
+                    isPrimary: true
+                };
+            }
+
+            return {
+                ...prev,
+                productImages: updated
+            };
+        });
+    }
+
+    function setPrimaryProductImage(id) {
+        setProductForm((prev) => ({
+            ...prev,
+            productImages: prev.productImages.map((image) => ({
+                ...image,
+                isPrimary: image.id === id
+            }))
         }));
     }
 
@@ -153,13 +435,13 @@ export default function AdminCatalogPage() {
             const payload = {
                 categoryId: Number(productForm.categoryId),
                 name: productForm.name.trim(),
-                description: productForm.description.trim() || null,
-                price: Number(productForm.price),
-                baseCost: Number(productForm.baseCost || 0),
-                imageUrl: productForm.imageUrl.trim() || null,
-                sizeOptions: productForm.sizeOptions.trim() || null,
-                colorOptions: productForm.colorOptions.trim() || null,
-                stockQuantity: Number(productForm.stockQuantity || 0),
+                shortDescription: productForm.shortDescription.trim() || null,
+                longDescriptionHtml: productForm.longDescriptionHtml || null,
+                price: parseCurrencyInput(productForm.price),
+                baseCost: parseCurrencyInput(productForm.baseCost),
+                sizeOptions: productForm.sizeOptions.join(","),
+                colorOptions: productForm.colorOptions.join(","),
+                stockQuantity: Math.max(0, Number(productForm.stockQuantity || 0)),
                 sku: productForm.sku.trim().toUpperCase(),
                 audience: productForm.audience,
                 fulfillmentProvider: productForm.fulfillmentProvider,
@@ -168,7 +450,12 @@ export default function AdminCatalogPage() {
                 externalDesignId: productForm.externalDesignId.trim() || null,
                 externalSku: productForm.externalSku.trim() || null,
                 isFulfillmentEnabled: productForm.isFulfillmentEnabled,
-                isActive: productForm.isActive
+                isActive: productForm.isActive,
+                productImages: productForm.productImages.map((image) => ({
+                    colorName: image.colorName,
+                    imageUrl: image.imageUrl,
+                    isPrimary: image.isPrimary
+                }))
             };
 
             if (editingProductId) {
@@ -181,6 +468,9 @@ export default function AdminCatalogPage() {
 
             setProductForm(emptyProduct);
             setEditingProductId(null);
+            setNewColor("");
+            setNewImageColor("");
+            setNewImageUrl("");
             await loadData();
         } catch (err) {
             setError(err.message || "Failed to save product.");
@@ -204,13 +494,13 @@ export default function AdminCatalogPage() {
         setProductForm({
             categoryId: String(product.categoryId ?? ""),
             name: product.name || "",
-            description: product.description || "",
-            price: String(product.price ?? ""),
-            baseCost: String(product.baseCost ?? 0),
-            imageUrl: product.imageUrl || "",
-            sizeOptions: product.sizeOptions || "",
-            colorOptions: product.colorOptions || "",
-            stockQuantity: String(product.stockQuantity ?? 0),
+            shortDescription: product.shortDescription || "",
+            longDescriptionHtml: product.longDescriptionHtml || "",
+            price: formatCurrencyDisplay(product.price ?? ""),
+            baseCost: formatCurrencyDisplay(product.baseCost ?? ""),
+            sizeOptions: normalizeArrayLike(product.sizeOptions),
+            colorOptions: normalizeArrayLike(product.colorOptions),
+            stockQuantity: String(product.stockQuantity ?? 9999),
             sku: product.sku || "",
             audience: product.audience || "All",
             fulfillmentProvider: product.fulfillmentProvider || "Manual",
@@ -219,8 +509,13 @@ export default function AdminCatalogPage() {
             externalDesignId: product.externalDesignId || "",
             externalSku: product.externalSku || "",
             isFulfillmentEnabled: !!product.isFulfillmentEnabled,
-            isActive: !!product.isActive
+            isActive: !!product.isActive,
+            productImages: normalizeProductImages(product.productImages)
         });
+
+        setNewColor("");
+        setNewImageColor("");
+        setNewImageUrl("");
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -303,7 +598,7 @@ export default function AdminCatalogPage() {
     if (loading) {
         return (
             <div className="admin-page">
-                <div className="admin-card">Loading admin catalog...</div>
+                <div className="admin-card loading-screen-space">Loading admin catalog...</div>
             </div>
         );
     }
@@ -316,11 +611,9 @@ export default function AdminCatalogPage() {
                     <p>Manage Beau North categories, products, and Apliiq-linked fulfillment mappings.</p>
                 </div>
 
-                {apliiqStatus ? (
-                    <div className={`status-pill ${apliiqStatus.isValid ? "good" : "bad"}`}>
-                        Apliiq {apliiqStatus.isValid ? "connected" : "not connected"}
-                    </div>
-                ) : null}
+                <div className={`status-pill ${apliiqStatus.isValid ? "good" : "bad"}`}>
+                    Apliiq {apliiqStatus.isValid ? "connected" : "not connected"}
+                </div>
             </div>
 
             {message ? <div className="admin-alert success">{message}</div> : null}
@@ -411,23 +704,55 @@ export default function AdminCatalogPage() {
                         </label>
 
                         <label className="span-2">
-                            Description
+                            Short Description
                             <textarea
-                                name="description"
-                                value={productForm.description}
+                                name="shortDescription"
+                                value={productForm.shortDescription}
                                 onChange={handleProductChange}
                                 rows="3"
+                                placeholder="Used on product cards and listings."
                             />
                         </label>
+
+                        <div className="span-2 stacked-control">
+                            <label className="stack-label">Long Description</label>
+                            <LongDescriptionEditor
+                                value={productForm.longDescriptionHtml}
+                                onChange={(html) =>
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        longDescriptionHtml: html
+                                    }))
+                                }
+                            />
+                        </div>
 
                         <label>
                             Price
                             <input
                                 name="price"
-                                type="number"
-                                step="0.01"
+                                type="text"
+                                inputMode="decimal"
                                 value={productForm.price}
-                                onChange={handleProductChange}
+                                onChange={(e) =>
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        price: unformatCurrencyDisplay(e.target.value)
+                                    }))
+                                }
+                                onBlur={() =>
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        price: formatCurrencyDisplay(prev.price)
+                                    }))
+                                }
+                                onFocus={() =>
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        price: unformatCurrencyDisplay(prev.price)
+                                    }))
+                                }
+                                placeholder="$0.00"
                                 required
                             />
                         </label>
@@ -436,10 +761,28 @@ export default function AdminCatalogPage() {
                             Base Cost
                             <input
                                 name="baseCost"
-                                type="number"
-                                step="0.01"
+                                type="text"
+                                inputMode="decimal"
                                 value={productForm.baseCost}
-                                onChange={handleProductChange}
+                                onChange={(e) =>
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        baseCost: unformatCurrencyDisplay(e.target.value)
+                                    }))
+                                }
+                                onBlur={() =>
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        baseCost: formatCurrencyDisplay(prev.baseCost)
+                                    }))
+                                }
+                                onFocus={() =>
+                                    setProductForm((prev) => ({
+                                        ...prev,
+                                        baseCost: unformatCurrencyDisplay(prev.baseCost)
+                                    }))
+                                }
+                                placeholder="$0.00"
                                 required
                             />
                         </label>
@@ -463,40 +806,133 @@ export default function AdminCatalogPage() {
                             <input
                                 name="stockQuantity"
                                 type="number"
+                                min="0"
+                                step="1"
                                 value={productForm.stockQuantity}
                                 onChange={handleProductChange}
                                 required
                             />
                         </label>
 
-                        <label className="span-2">
-                            Image URL
-                            <input
-                                name="imageUrl"
-                                value={productForm.imageUrl}
-                                onChange={handleProductChange}
-                            />
-                        </label>
+                        <div className="span-2 stacked-control">
+                            <label className="stack-label">Available Sizes</label>
 
-                        <label>
-                            Size Options
-                            <input
-                                name="sizeOptions"
-                                value={productForm.sizeOptions}
-                                onChange={handleProductChange}
-                                placeholder="S,M,L,XL"
-                            />
-                        </label>
+                            <div className="size-dropdown" ref={sizeDropdownRef}>
+                                <button
+                                    type="button"
+                                    className="size-dropdown-trigger"
+                                    onClick={() => setShowSizeDropdown((prev) => !prev)}
+                                >
+                                    {productForm.sizeOptions.length > 0
+                                        ? productForm.sizeOptions.join(", ")
+                                        : "Select sizes"}
+                                </button>
 
-                        <label>
-                            Color Options
-                            <input
-                                name="colorOptions"
-                                value={productForm.colorOptions}
-                                onChange={handleProductChange}
-                                placeholder="Black,Cream,Forest"
-                            />
-                        </label>
+                                {showSizeDropdown && (
+                                    <div className="size-dropdown-menu">
+                                        {SIZE_OPTIONS.map((size) => (
+                                            <label key={size} className="size-option-row">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={productForm.sizeOptions.includes(size)}
+                                                    onChange={() => toggleSize(size)}
+                                                />
+                                                <span>{size}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="span-2 stacked-control">
+                            <label className="stack-label">Available Colors</label>
+
+                            <div className="inline-add-row">
+                                <input
+                                    value={newColor}
+                                    onChange={(e) => setNewColor(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            addColorChip();
+                                        }
+                                    }}
+                                    placeholder="Type a color and press Add"
+                                />
+                                <button type="button" onClick={addColorChip}>
+                                    Add
+                                </button>
+                            </div>
+
+                            <div className="chip-list">
+                                {productForm.colorOptions.map((color) => (
+                                    <div key={color} className="color-chip">
+                                        <span>{color}</span>
+                                        <button type="button" onClick={() => removeColorChip(color)}>
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="span-2 product-images-block stacked-control">
+                            <label className="stack-label">Product Images by Color</label>
+
+                            <div className="image-mapping-entry">
+                                <select
+                                    value={newImageColor}
+                                    onChange={(e) => setNewImageColor(e.target.value)}
+                                >
+                                    <option value="">Select color</option>
+                                    {productForm.colorOptions.map((color) => (
+                                        <option key={color} value={color}>
+                                            {color}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <input
+                                    value={newImageUrl}
+                                    onChange={(e) => setNewImageUrl(e.target.value)}
+                                    placeholder="Image URL"
+                                />
+
+                                <button type="button" onClick={addProductImageMapping}>
+                                    Add Image
+                                </button>
+                            </div>
+
+                            <div className="image-mapping-list">
+                                {productForm.productImages.map((image) => (
+                                    <div key={image.id} className="image-mapping-card">
+                                        <div className="image-mapping-meta">
+                                            <strong>{image.colorName}</strong>
+                                            <span>{image.imageUrl}</span>
+                                        </div>
+
+                                        <div className="image-mapping-actions">
+                                            <button
+                                                type="button"
+                                                className={image.isPrimary ? "secondary active-primary" : "secondary"}
+                                                onClick={() => setPrimaryProductImage(image.id)}
+                                            >
+                                                {image.isPrimary ? "Primary" : "Set Primary"}
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="secondary"
+                                                onClick={() => removeProductImageMapping(image.id)}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
                         <label>
                             SKU
@@ -586,6 +1022,9 @@ export default function AdminCatalogPage() {
                                 onClick={() => {
                                     setEditingProductId(null);
                                     setProductForm(emptyProduct);
+                                    setNewColor("");
+                                    setNewImageColor("");
+                                    setNewImageUrl("");
                                 }}
                             >
                                 Reset

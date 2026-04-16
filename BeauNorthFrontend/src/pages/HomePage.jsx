@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getProducts } from "../api/productApi";
 import { motion } from "framer-motion";
+import { getPrimaryProductImage } from "../utils/productImages";
 import mascot from "../assets/mascot.jpeg";
 import "./HomePage.css";
 
@@ -164,40 +165,51 @@ export default function HomePage() {
                         </button>
 
                         <div className="home-carousel-track">
-                            {visibleProducts.map(({ product, offset }) => (
-                                <motion.div
-                                    key={product.productId}
-                                    layout
-                                    className="home-carousel-motion-card"
-                                    animate={getCardAnimation(offset)}
-                                    transition={{
-                                        type: "spring",
-                                        stiffness: 90,
-                                        damping: 18,
-                                        mass: 1.1
-                                    }}
-                                >
-                                    <Link
-                                        to={`/products/${product.productId}`}
-                                        className="home-carousel-card"
+                            {visibleProducts.map(({ product, offset }) => {
+                                const imageUrl = getPrimaryProductImage(product);
+
+                                return (
+                                    <motion.div
+                                        key={product.productId}
+                                        layout
+                                        className="home-carousel-motion-card"
+                                        animate={getCardAnimation(offset)}
+                                        transition={{
+                                            type: "spring",
+                                            stiffness: 90,
+                                            damping: 18,
+                                            mass: 1.1
+                                        }}
                                     >
-                                        <img
-                                            src={product.imageUrl}
-                                            alt={product.name}
-                                            className="home-carousel-image"
-                                        />
-                                        <div className="home-carousel-card-body">
-                                            <p className="home-carousel-category">
-                                                {product.category?.name || "Product"}
-                                            </p>
-                                            <h3 className="home-carousel-name">{product.name}</h3>
-                                            <p className="home-carousel-price">
-                                                ${Number(product.price).toFixed(2)}
-                                            </p>
-                                        </div>
-                                    </Link>
-                                </motion.div>
-                            ))}
+                                        <Link
+                                            to={`/products/${product.productId}`}
+                                            className="home-carousel-card"
+                                        >
+                                            {imageUrl ? (
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={product.name}
+                                                    className="home-carousel-image"
+                                                />
+                                            ) : (
+                                                <div className="home-carousel-image home-carousel-image-placeholder">
+                                                    No Image
+                                                </div>
+                                            )}
+
+                                            <div className="home-carousel-card-body">
+                                                <p className="home-carousel-category">
+                                                    {product.category?.name || "Product"}
+                                                </p>
+                                                <h3 className="home-carousel-name">{product.name}</h3>
+                                                <p className="home-carousel-price">
+                                                    ${Number(product.price).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    </motion.div>
+                                );
+                            })}
                         </div>
 
                         <button

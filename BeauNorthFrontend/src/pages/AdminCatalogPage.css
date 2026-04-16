@@ -70,11 +70,20 @@
     font-weight: 600;
 }
 
+.stack-label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+    line-height: 1.2;
+}
+
 .admin-form input,
 .admin-form select,
 .admin-form textarea,
 .search-input,
-.filter-select {
+.filter-select,
+.size-dropdown-trigger {
     width: 100%;
     border: 1px solid #d1d5db;
     border-radius: 14px;
@@ -84,15 +93,28 @@
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     box-sizing: border-box;
+    color: #111827;
 }
 
     .admin-form input:focus,
     .admin-form select:focus,
     .admin-form textarea:focus,
     .search-input:focus,
-    .filter-select:focus {
+    .filter-select:focus,
+    .size-dropdown-trigger:focus {
         border-color: #111827;
         box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.08);
+    }
+
+.admin-page input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+    .admin-page input[type="number"]::-webkit-outer-spin-button,
+    .admin-page input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
     }
 
 .checkbox-row {
@@ -117,7 +139,7 @@
         justify-content: flex-end;
     }
 
-button {
+.admin-page button {
     border: none;
     border-radius: 14px;
     padding: 11px 16px;
@@ -129,20 +151,26 @@ button {
     transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
-    button:hover {
+    .admin-page button:hover {
         transform: translateY(-1px);
     }
 
-    button.secondary {
+    .admin-page button.secondary {
         background: #f3f4f6;
         color: #111827;
     }
 
-    button:disabled {
+    .admin-page button:disabled {
         opacity: 0.6;
         cursor: not-allowed;
         transform: none;
     }
+
+.active-primary {
+    border: 1px solid #065f46;
+    background: #ecfdf5 !important;
+    color: #065f46 !important;
+}
 
 .span-2 {
     grid-column: span 2;
@@ -265,6 +293,206 @@ button {
     margin-top: 18px;
 }
 
+/* Tiptap */
+.editor-shell {
+    border: 1px solid #d1d5db;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fafafa;
+}
+
+    .editor-toolbar button {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 10px;
+        background: #f3f4f6;
+        color: #111827;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .editor-toolbar button.active {
+            background: #111827;
+            color: #ffffff;
+        }
+
+.tiptap-editor .ProseMirror {
+    min-height: 240px;
+    padding: 14px 16px;
+    outline: none;
+    line-height: 1.7;
+    color: #111827;
+    font-family: inherit;
+}
+
+    .tiptap-editor .ProseMirror p {
+        margin: 0 0 1rem;
+    }
+
+    .tiptap-editor .ProseMirror ul,
+    .tiptap-editor .ProseMirror ol {
+        margin: 0 0 1rem 1.5rem;
+        padding: 0;
+    }
+
+    .tiptap-editor .ProseMirror li {
+        margin: 0.35rem 0;
+    }
+
+    .tiptap-editor .ProseMirror strong {
+        font-weight: 700;
+    }
+
+    .tiptap-editor .ProseMirror em {
+        font-style: italic;
+    }
+
+    .tiptap-editor .ProseMirror,
+    .tiptap-editor .ProseMirror * {
+        font-family: inherit !important;
+    }
+
+/* Size dropdown */
+.size-dropdown {
+    position: relative;
+}
+
+.size-dropdown-trigger {
+    text-align: left;
+    min-height: 46px;
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+}
+
+.size-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 10;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(17, 24, 39, 0.08);
+    padding: 10px;
+}
+
+.size-option-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 6px;
+    font-weight: 500;
+}
+
+    .size-option-row input {
+        width: auto;
+    }
+
+/* Color chips */
+.inline-add-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+}
+
+.chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.color-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 8px 12px;
+    color: #111827;
+}
+
+    .color-chip button {
+        padding: 0;
+        min-width: 22px;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: #111827;
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+/* Image mapping */
+.product-images-block {
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 14px;
+    background: #fafafa;
+}
+
+.image-mapping-entry {
+    display: grid;
+    grid-template-columns: 220px 1fr auto;
+    gap: 10px;
+    margin-top: 8px;
+    margin-bottom: 14px;
+}
+
+.image-mapping-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.image-mapping-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.image-mapping-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+    .image-mapping-meta span {
+        color: #6b7280;
+        word-break: break-all;
+        font-size: 0.9rem;
+    }
+
+.image-mapping-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 1100px) {
     .admin-grid {
         grid-template-columns: 1fr;
@@ -274,7 +502,8 @@ button {
 @media (max-width: 800px) {
     .admin-form-grid,
     .table-row,
-    .product-row {
+    .product-row,
+    .image-mapping-entry {
         grid-template-columns: 1fr;
     }
 
@@ -295,5 +524,19 @@ button {
     .search-input,
     .filter-select {
         min-width: 0;
+    }
+
+    .stacked-control {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .inline-add-row {
+        grid-template-columns: 1fr;
+    }
+
+    .image-mapping-card {
+        flex-direction: column;
     }
 }
