@@ -45,6 +45,7 @@
     gap: 0.45rem;
     border: 1px solid #dddddd;
     background: #ffffff;
+    color: #111111;
     border-radius: 12px;
     padding: 0.45rem 0.55rem;
     cursor: pointer;
@@ -93,6 +94,7 @@
     width: 100%;
     border: none;
     background: #ffffff;
+    color: #111111;
     text-align: left;
     padding: 0.75rem;
     border-radius: 10px;
@@ -113,6 +115,7 @@
     gap: 0.15rem;
     min-width: 0;
     flex: 1;
+    color: #111111;
 }
 
     .navbar-address-item:hover,
@@ -240,6 +243,7 @@
 .navbar-account-button {
     border: 1px solid #dddddd;
     background: #ffffff;
+    color: #111111;
     border-radius: 12px;
     min-height: 38px;
     padding: 0.5rem 0.7rem;
@@ -268,6 +272,7 @@
     width: 100%;
     border: none;
     background: #ffffff;
+    color: #111111;
     text-align: left;
     padding: 0.75rem 0.85rem;
     border-radius: 10px;

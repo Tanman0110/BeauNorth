@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using BeauNorthApi.Data;
+﻿using BeauNorthApi.Data;
 using BeauNorthAPI.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace BeauNorthApi.Controllers
+namespace BeauNorthAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -17,6 +18,7 @@ namespace BeauNorthApi.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetCategories()
         {
             var categories = await _context.Categories
@@ -26,10 +28,24 @@ namespace BeauNorthApi.Controllers
             return Ok(categories);
         }
 
+        [HttpGet("active")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetActiveCategories()
+        {
+            var categories = await _context.Categories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return Ok(categories);
+        }
+
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetCategory(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
 
             if (category == null)
             {
@@ -39,13 +55,32 @@ namespace BeauNorthApi.Controllers
             return Ok(category);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> CreateCategory(Category category)
+        public async Task<IActionResult> CreateCategory(Category request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+
+            var normalizedName = request.Name.Trim();
+
+            var exists = await _context.Categories
+                .AnyAsync(c => c.Name.ToLower() == normalizedName.ToLower());
+
+            if (exists)
+            {
+                return BadRequest("Category name already exists.");
+            }
+
+            var category = new Category
+            {
+                Name = normalizedName,
+                Description = request.Description?.Trim(),
+                IsActive = request.IsActive,
+                CreatedAt = DateTime.UtcNow
+            };
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
@@ -53,41 +88,51 @@ namespace BeauNorthApi.Controllers
             return CreatedAtAction(nameof(GetCategory), new { id = category.CategoryId }, category);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(int id, Category updatedCategory)
+        public async Task<IActionResult> UpdateCategory(int id, Category request)
         {
-            if (id != updatedCategory.CategoryId)
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Category ID mismatch.");
+                return BadRequest(ModelState);
             }
 
-            var existingCategory = await _context.Categories.FindAsync(id);
-
-            if (existingCategory == null)
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null)
             {
                 return NotFound();
             }
 
-            existingCategory.Name = updatedCategory.Name;
-            existingCategory.Description = updatedCategory.Description;
-            existingCategory.IsActive = updatedCategory.IsActive;
+            var normalizedName = request.Name.Trim();
+
+            var exists = await _context.Categories
+                .AnyAsync(c => c.CategoryId != id && c.Name.ToLower() == normalizedName.ToLower());
+
+            if (exists)
+            {
+                return BadRequest("Category name already exists.");
+            }
+
+            category.Name = normalizedName;
+            category.Description = request.Description?.Trim();
+            category.IsActive = request.IsActive;
 
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var category = await _context.Categories.FindAsync(id);
-
             if (category == null)
             {
                 return NotFound();
             }
 
-            _context.Categories.Remove(category);
+            category.IsActive = false;
             await _context.SaveChangesAsync();
 
             return NoContent();

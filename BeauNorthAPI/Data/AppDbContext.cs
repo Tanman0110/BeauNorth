@@ -8,6 +8,7 @@ namespace BeauNorthApi.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
+
         public DbSet<User> Users => Set<User>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Product> Products => Set<Product>();
@@ -42,6 +43,10 @@ namespace BeauNorthApi.Data
 
             modelBuilder.Entity<Product>()
                 .Property(p => p.Price)
+                .HasPrecision(10, 2);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.BaseCost)
                 .HasPrecision(10, 2);
 
             modelBuilder.Entity<CartItem>()
@@ -149,6 +154,11 @@ namespace BeauNorthApi.Data
                 .WithOne(o => o.UserAddress)
                 .HasForeignKey(o => o.UserAddressId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Audience)
+                .HasConversion<string>()
+                .HasMaxLength(20);
         }
     }
 }

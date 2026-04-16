@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using BeauNorthAPI.Models;
 
 namespace BeauNorthAPI.DTOs.Products
 {
@@ -17,6 +18,9 @@ namespace BeauNorthAPI.DTOs.Products
         [Range(typeof(decimal), "0.01", "999999.99")]
         public decimal Price { get; set; }
 
+        [Range(typeof(decimal), "0.00", "999999.99")]
+        public decimal BaseCost { get; set; }
+
         [Url]
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
@@ -32,9 +36,29 @@ namespace BeauNorthAPI.DTOs.Products
 
         [Required]
         [MaxLength(100)]
-        [RegularExpression(@"^[A-Z0-9\-]+$", ErrorMessage = "SKU can only contain uppercase letters, numbers, and hyphens.")]
+        [RegularExpression(@"^[A-Z0-9\-]+$")]
         public string Sku { get; set; } = string.Empty;
 
-        public bool IsActive { get; set; }
+        [Required]
+        public ProductAudience Audience { get; set; } = ProductAudience.All;
+
+        [MaxLength(50)]
+        public string FulfillmentProvider { get; set; } = "Manual";
+
+        [MaxLength(100)]
+        public string? ExternalProductId { get; set; }
+
+        [MaxLength(100)]
+        public string? ExternalVariantId { get; set; }
+
+        [MaxLength(100)]
+        public string? ExternalDesignId { get; set; }
+
+        [MaxLength(100)]
+        public string? ExternalSku { get; set; }
+
+        public bool IsFulfillmentEnabled { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
     }
 }

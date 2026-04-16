@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using BeauNorthApi.Data;
 using BeauNorthAPI.DTOs.Checkout;
 using BeauNorthAPI.Models;
+using BeauNorthAPI.Services;
 using System.Security.Claims;
 
 namespace BeauNorthAPI.Controllers
@@ -14,10 +15,12 @@ namespace BeauNorthAPI.Controllers
     public class CheckoutController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IApliiqService _apliiqService;
 
-        public CheckoutController(AppDbContext context)
+        public CheckoutController(AppDbContext context, IApliiqService apliiqService)
         {
             _context = context;
+            _apliiqService = apliiqService;
         }
 
         [HttpPost]
@@ -57,100 +60,165 @@ namespace BeauNorthAPI.Controllers
                 }
             }
 
+            var hasApliiqItems = cart.CartItems.Any(ci =>
+                ci.Product != null &&
+                ci.Product.IsFulfillmentEnabled &&
+                string.Equals(ci.Product.FulfillmentProvider, "Apliiq", StringComparison.OrdinalIgnoreCase));
+
+            var hasManualItems = cart.CartItems.Any(ci =>
+                ci.Product == null ||
+                !ci.Product.IsFulfillmentEnabled ||
+                !string.Equals(ci.Product.FulfillmentProvider, "Apliiq", StringComparison.OrdinalIgnoreCase));
+
+            if (hasApliiqItems && hasManualItems)
+            {
+                return BadRequest("Mixed carts are not supported yet. Please checkout Apliiq products separately from manual products.");
+            }
+
             var subtotal = cart.CartItems.Sum(ci => ci.UnitPrice * ci.Quantity);
             var taxAmount = Math.Round(subtotal * 0.06m, 2);
             var shippingAmount = subtotal >= 100 ? 0 : 8.99m;
             var totalAmount = subtotal + taxAmount + shippingAmount;
 
-            var order = new Order
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                UserId = userId.Value,
-                OrderNumber = $"ORD-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
-                Status = "Pending",
-                Subtotal = subtotal,
-                TaxAmount = taxAmount,
-                ShippingAmount = shippingAmount,
-                TotalAmount = totalAmount,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
-            var orderItems = cart.CartItems.Select(ci => new OrderItem
-            {
-                OrderId = order.OrderId,
-                ProductId = ci.ProductId,
-                Quantity = ci.Quantity,
-                UnitPrice = ci.UnitPrice,
-                ProductNameSnapshot = ci.Product?.Name ?? string.Empty,
-                ProductSkuSnapshot = ci.Product?.Sku ?? string.Empty,
-                SizeSelected = ci.SizeSelected,
-                ColorSelected = ci.ColorSelected
-            }).ToList();
-
-            _context.OrderItems.AddRange(orderItems);
-
-            var shippingAddress = new ShippingAddress
-            {
-                OrderId = order.OrderId,
-                FullName = request.FullName.Trim(),
-                AddressLine1 = request.AddressLine1.Trim(),
-                AddressLine2 = request.AddressLine2?.Trim(),
-                City = request.City.Trim(),
-                State = request.State.Trim(),
-                PostalCode = request.PostalCode.Trim(),
-                Country = request.Country.Trim()
-            };
-
-            _context.ShippingAddresses.Add(shippingAddress);
-
-            var payment = new Payment
-            {
-                OrderId = order.OrderId,
-                Provider = request.PaymentProvider.Trim(),
-                ProviderPaymentId = $"demo_{Guid.NewGuid():N}",
-                Status = "Pending",
-                Amount = totalAmount,
-                PaidAt = null
-            };
-
-            _context.Payments.Add(payment);
-
-            var fulfillment = new FulfillmentOrder
-            {
-                OrderId = order.OrderId,
-                Provider = "Manual",
-                ProviderOrderId = null,
-                FulfillmentStatus = "Pending",
-                TrackingNumber = null,
-                TrackingUrl = null,
-                SubmittedAt = null,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            _context.FulfillmentOrders.Add(fulfillment);
-
-            foreach (var cartItem in cart.CartItems)
-            {
-                if (cartItem.Product != null)
+                var order = new Order
                 {
-                    cartItem.Product.StockQuantity -= cartItem.Quantity;
+                    UserId = userId.Value,
+                    OrderNumber = $"ORD-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                    Status = hasApliiqItems ? "SubmittingToFulfillment" : "Pending",
+                    Subtotal = subtotal,
+                    TaxAmount = taxAmount,
+                    ShippingAmount = shippingAmount,
+                    TotalAmount = totalAmount,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+
+                var orderItems = cart.CartItems.Select(ci => new OrderItem
+                {
+                    OrderId = order.OrderId,
+                    ProductId = ci.ProductId,
+                    Quantity = ci.Quantity,
+                    UnitPrice = ci.UnitPrice,
+                    ProductNameSnapshot = ci.Product?.Name ?? string.Empty,
+                    ProductSkuSnapshot = ci.Product?.Sku ?? string.Empty,
+                    SizeSelected = ci.SizeSelected,
+                    ColorSelected = ci.ColorSelected
+                }).ToList();
+
+                _context.OrderItems.AddRange(orderItems);
+
+                var shippingAddress = new ShippingAddress
+                {
+                    OrderId = order.OrderId,
+                    FullName = request.FullName.Trim(),
+                    AddressLine1 = request.AddressLine1.Trim(),
+                    AddressLine2 = request.AddressLine2?.Trim(),
+                    City = request.City.Trim(),
+                    State = request.State.Trim(),
+                    PostalCode = request.PostalCode.Trim(),
+                    Country = request.Country.Trim()
+                };
+
+                _context.ShippingAddresses.Add(shippingAddress);
+
+                var payment = new Payment
+                {
+                    OrderId = order.OrderId,
+                    Provider = request.PaymentProvider.Trim(),
+                    ProviderPaymentId = $"demo_{Guid.NewGuid():N}",
+                    Status = hasApliiqItems ? "AcceptedForSubmission" : "Pending",
+                    Amount = totalAmount,
+                    PaidAt = null
+                };
+
+                _context.Payments.Add(payment);
+
+                var fulfillment = new FulfillmentOrder
+                {
+                    OrderId = order.OrderId,
+                    Provider = hasApliiqItems ? "Apliiq" : "Manual",
+                    ProviderOrderId = null,
+                    FulfillmentStatus = hasApliiqItems ? "Submitting" : "Pending",
+                    TrackingNumber = null,
+                    TrackingUrl = null,
+                    SubmittedAt = null,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.FulfillmentOrders.Add(fulfillment);
+
+                foreach (var cartItem in cart.CartItems)
+                {
+                    if (cartItem.Product != null)
+                    {
+                        cartItem.Product.StockQuantity -= cartItem.Quantity;
+                        cartItem.Product.UpdatedAt = DateTime.UtcNow;
+                    }
                 }
+
+                _context.CartItems.RemoveRange(cart.CartItems);
+
+                await _context.SaveChangesAsync();
+
+                if (hasApliiqItems)
+                {
+                    var hydratedOrder = await _context.Orders
+                        .Include(o => o.OrderItems)
+                        .Include(o => o.ShippingAddress)
+                        .Include(o => o.Payment)
+                        .Include(o => o.FulfillmentOrder)
+                        .FirstAsync(o => o.OrderId == order.OrderId);
+
+                    var apliiqResult = await _apliiqService.SubmitOrderAsync(hydratedOrder);
+
+                    hydratedOrder.FulfillmentOrder!.ProviderOrderId = apliiqResult.ProviderOrderId;
+                    hydratedOrder.FulfillmentOrder.SubmittedAt = DateTime.UtcNow;
+                    hydratedOrder.FulfillmentOrder.UpdatedAt = DateTime.UtcNow;
+
+                    if (apliiqResult.Success)
+                    {
+                        hydratedOrder.FulfillmentOrder.FulfillmentStatus =
+                            apliiqResult.AcceptedButPending ? "AcceptedPendingReview" : "Submitted";
+
+                        hydratedOrder.Status =
+                            apliiqResult.AcceptedButPending ? "FulfillmentPendingReview" : "SubmittedToFulfillment";
+                    }
+                    else
+                    {
+                        hydratedOrder.FulfillmentOrder.FulfillmentStatus = "SubmissionFailed";
+                        hydratedOrder.Status = "FulfillmentSubmissionFailed";
+                    }
+
+                    hydratedOrder.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    order.OrderId,
+                    order.OrderNumber,
+                    order.TotalAmount,
+                    Status = hasApliiqItems ? "SubmittedToFulfillment" : order.Status
+                });
             }
-
-            _context.CartItems.RemoveRange(cart.CartItems);
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            catch (Exception ex)
             {
-                order.OrderId,
-                order.OrderNumber,
-                order.TotalAmount,
-                order.Status
-            });
+                await transaction.RollbackAsync();
+                return StatusCode(500, new
+                {
+                    message = "Checkout failed.",
+                    detail = ex.Message
+                });
+            }
         }
 
         private int? GetAuthenticatedUserId()
