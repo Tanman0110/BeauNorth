@@ -46,15 +46,6 @@ namespace BeauNorthAPI.Models
         public string FulfillmentProvider { get; set; } = "Manual";
 
         [MaxLength(100)]
-        public string? ExternalProductId { get; set; }
-
-        [MaxLength(100)]
-        public string? ExternalVariantId { get; set; }
-
-        [MaxLength(100)]
-        public string? ExternalDesignId { get; set; }
-
-        [MaxLength(100)]
         public string? ExternalSku { get; set; }
 
         public bool IsFulfillmentEnabled { get; set; } = false;

@@ -1,7 +1,7 @@
 ﻿using BeauNorthAPI.DTOs.Apliiq;
 using BeauNorthAPI.Models;
 
-namespace BeauNorthAPI.Services
+namespace BeauNorthAPI.Services.Apliiq
 {
     public interface IApliiqService
     {

@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using BeauNorthApi.Data;
 using BeauNorthAPI.DTOs.Apliiq;
-using BeauNorthAPI.Services;
+using BeauNorthAPI.Services.Apliiq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 

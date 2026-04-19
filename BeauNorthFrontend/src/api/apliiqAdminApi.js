@@ -5,13 +5,5 @@ export async function getApliiqConfigStatus() {
         headers: getAuthHeaders()
     });
 
-    return handleResponse(response, "Failed to fetch Apliiq configuration status.");
-}
-
-export async function getApliiqOrder(providerOrderId) {
-    const response = await fetch(`${API_BASE_URL}/Apliiq/order/${providerOrderId}`, {
-        headers: getAuthHeaders()
-    });
-
-    return handleResponse(response, "Failed to fetch Apliiq order.");
+    return handleResponse(response, "Failed to get Apliiq config status.");
 }

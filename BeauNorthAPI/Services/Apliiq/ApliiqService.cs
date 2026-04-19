@@ -5,11 +5,12 @@ using System.Text.Json;
 using BeauNorthAPI.DTOs.Apliiq;
 using BeauNorthAPI.Models;
 using BeauNorthAPI.Options;
+using BeauNorthAPI.Services.Apliiq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using BeauNorthApi.Data;
 
-namespace BeauNorthAPI.Services
+namespace BeauNorthAPI.Services.Apliiq
 {
     public class ApliiqService : IApliiqService
     {

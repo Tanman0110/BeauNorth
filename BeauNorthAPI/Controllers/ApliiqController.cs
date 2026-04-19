@@ -1,4 +1,4 @@
-﻿using BeauNorthAPI.Services;
+﻿using BeauNorthAPI.Services.Apliiq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

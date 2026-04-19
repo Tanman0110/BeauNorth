@@ -77,7 +77,7 @@ namespace BeauNorthAPI.Controllers
                 return BadRequest("Invalid CategoryId.");
             }
 
-            var normalizedSku = request.Sku.Trim().ToUpper();
+            var normalizedSku = request.Sku.Trim().ToUpperInvariant();
 
             var skuExists = await _context.Products.AnyAsync(p => p.Sku == normalizedSku);
             if (skuExists)
@@ -87,9 +87,9 @@ namespace BeauNorthAPI.Controllers
 
             if (request.IsFulfillmentEnabled &&
                 string.Equals(request.FulfillmentProvider?.Trim(), "Apliiq", StringComparison.OrdinalIgnoreCase) &&
-                (string.IsNullOrWhiteSpace(request.ExternalProductId) || string.IsNullOrWhiteSpace(request.ExternalVariantId)))
+                string.IsNullOrWhiteSpace(request.ExternalSku))
             {
-                return BadRequest("Apliiq-enabled products require ExternalProductId and ExternalVariantId.");
+                return BadRequest("Apliiq-enabled products require ExternalSku.");
             }
 
             var product = new Product
@@ -108,9 +108,6 @@ namespace BeauNorthAPI.Controllers
                 FulfillmentProvider = string.IsNullOrWhiteSpace(request.FulfillmentProvider)
                     ? "Manual"
                     : request.FulfillmentProvider.Trim(),
-                ExternalProductId = request.ExternalProductId?.Trim(),
-                ExternalVariantId = request.ExternalVariantId?.Trim(),
-                ExternalDesignId = request.ExternalDesignId?.Trim(),
                 ExternalSku = request.ExternalSku?.Trim(),
                 IsFulfillmentEnabled = request.IsFulfillmentEnabled,
                 IsActive = request.IsActive,
@@ -159,7 +156,7 @@ namespace BeauNorthAPI.Controllers
                 return BadRequest("Invalid CategoryId.");
             }
 
-            var normalizedSku = request.Sku.Trim().ToUpper();
+            var normalizedSku = request.Sku.Trim().ToUpperInvariant();
 
             var skuExists = await _context.Products.AnyAsync(p => p.Sku == normalizedSku && p.ProductId != id);
             if (skuExists)
@@ -169,9 +166,9 @@ namespace BeauNorthAPI.Controllers
 
             if (request.IsFulfillmentEnabled &&
                 string.Equals(request.FulfillmentProvider?.Trim(), "Apliiq", StringComparison.OrdinalIgnoreCase) &&
-                (string.IsNullOrWhiteSpace(request.ExternalProductId) || string.IsNullOrWhiteSpace(request.ExternalVariantId)))
+                string.IsNullOrWhiteSpace(request.ExternalSku))
             {
-                return BadRequest("Apliiq-enabled products require ExternalProductId and ExternalVariantId.");
+                return BadRequest("Apliiq-enabled products require ExternalSku.");
             }
 
             product.CategoryId = request.CategoryId;
@@ -188,9 +185,6 @@ namespace BeauNorthAPI.Controllers
             product.FulfillmentProvider = string.IsNullOrWhiteSpace(request.FulfillmentProvider)
                 ? "Manual"
                 : request.FulfillmentProvider.Trim();
-            product.ExternalProductId = request.ExternalProductId?.Trim();
-            product.ExternalVariantId = request.ExternalVariantId?.Trim();
-            product.ExternalDesignId = request.ExternalDesignId?.Trim();
             product.ExternalSku = request.ExternalSku?.Trim();
             product.IsFulfillmentEnabled = request.IsFulfillmentEnabled;
             product.IsActive = request.IsActive;

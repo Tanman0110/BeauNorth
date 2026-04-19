@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using BeauNorthApi.Data;
 using BeauNorthAPI.DTOs.Checkout;
 using BeauNorthAPI.Models;
-using BeauNorthAPI.Services;
 using System.Security.Claims;
+using BeauNorthAPI.Services.Apliiq;
 
 namespace BeauNorthAPI.Controllers
 {

@@ -1,4 +1,4 @@
-﻿namespace BeauNorthAPI.Services
+﻿namespace BeauNorthAPI.Services.Email
 {
     public interface IEmailService
     {

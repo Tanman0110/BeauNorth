@@ -3,9 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using BeauNorthApi.Data;
 using BeauNorthAPI.Options;
-using BeauNorthAPI.Services;
 using System.Text;
 using System.Text.Json.Serialization;
+using BeauNorthAPI.Services.Apliiq;
+using BeauNorthAPI.Services.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 

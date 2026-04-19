@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Bold, Italic, List, ListOrdered, Link2 } from "lucide-react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -17,11 +18,10 @@ import {
 } from "../api/adminProductsApi";
 import { getApliiqConfigStatus } from "../api/apliiqAdminApi";
 import "./AdminCatalogPage.css";
-import { Bold, Italic, List, ListOrdered, Link2 } from "lucide-react";
 
 const CATEGORY_PAGE_SIZE = 10;
 const PRODUCT_PAGE_SIZE = 10;
-const SIZE_OPTIONS = ["No Size", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const SIZE_OPTIONS = ["One Size", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 const emptyCategory = {
     name: "",
@@ -36,18 +36,14 @@ const emptyProduct = {
     longDescriptionHtml: "",
     price: "",
     baseCost: "",
-    sizeOptions: [],
-    colorOptions: [],
     stockQuantity: "9999",
-    sku: "",
     audience: "All",
     fulfillmentProvider: "Manual",
-    externalProductId: "",
-    externalVariantId: "",
-    externalDesignId: "",
     externalSku: "",
     isFulfillmentEnabled: false,
     isActive: true,
+    selectedSizes: [],
+    colorOptions: [],
     productImages: []
 };
 
@@ -92,18 +88,6 @@ function unformatCurrencyDisplay(value) {
     return sanitizeCurrencyRaw(String(value || ""));
 }
 
-function normalizeArrayLike(value) {
-    if (Array.isArray(value)) {
-        return value;
-    }
-
-    if (typeof value === "string" && value.trim()) {
-        return value.split(",").map((item) => item.trim()).filter(Boolean);
-    }
-
-    return [];
-}
-
 function normalizeProductImages(productImages) {
     if (!Array.isArray(productImages)) {
         return [];
@@ -115,6 +99,42 @@ function normalizeProductImages(productImages) {
         imageUrl: image.imageUrl || "",
         isPrimary: !!image.isPrimary
     }));
+}
+
+function buildInternalSku(productName, color, size) {
+    function clean(value) {
+        if (!value) {
+            return "NA";
+        }
+
+        return value
+            .toUpperCase()
+            .replace(/[^A-Z0-9 ]/g, "")
+            .trim()
+            .replace(/\s+/g, "-") || "NA";
+    }
+
+    return `BN-${clean(productName)}-${clean(color)}-${clean(size)}`;
+}
+
+function buildGeneratedVariants(productForm) {
+    const colors = productForm.colorOptions || [];
+    const sizes = productForm.selectedSizes.length > 0 ? productForm.selectedSizes : [];
+
+    const combos = [];
+
+    for (const color of colors) {
+        for (const size of sizes) {
+            combos.push({
+                colorName: color,
+                sizeName: size,
+                externalSku: productForm.externalSku.trim(),
+                internalSku: buildInternalSku(productForm.name, color, size)
+            });
+        }
+    }
+
+    return combos;
 }
 
 function LongDescriptionEditor({ value, onChange }) {
@@ -238,25 +258,12 @@ export default function AdminCatalogPage() {
     const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
     const [categoryPage, setCategoryPage] = useState(1);
     const [productPage, setProductPage] = useState(1);
-    const [showSizeDropdown, setShowSizeDropdown] = useState(false);
-    const [newColor, setNewColor] = useState("");
     const [newImageColor, setNewImageColor] = useState("");
     const [newImageUrl, setNewImageUrl] = useState("");
-    const sizeDropdownRef = useRef(null);
+    const [newColor, setNewColor] = useState("");
 
     useEffect(() => {
         loadData();
-    }, []);
-
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (sizeDropdownRef.current && !sizeDropdownRef.current.contains(event.target)) {
-                setShowSizeDropdown(false);
-            }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     async function loadData() {
@@ -302,25 +309,31 @@ export default function AdminCatalogPage() {
         }));
     }
 
-    function toggleSize(size) {
+    function toggleSelectedSize(size) {
         setProductForm((prev) => {
-            const exists = prev.sizeOptions.includes(size);
+            const exists = prev.selectedSizes.includes(size);
 
             return {
                 ...prev,
-                sizeOptions: exists
-                    ? prev.sizeOptions.filter((item) => item !== size)
-                    : [...prev.sizeOptions, size]
+                selectedSizes: exists
+                    ? prev.selectedSizes.filter((item) => item !== size)
+                    : [...prev.selectedSizes, size]
             };
         });
     }
 
     function addColorChip() {
         const color = newColor.trim();
-        if (!color) return;
+        if (!color) {
+            return;
+        }
 
         setProductForm((prev) => {
-            if (prev.colorOptions.some((item) => item.toLowerCase() === color.toLowerCase())) {
+            const exists = prev.colorOptions.some(
+                (item) => item.toLowerCase() === color.toLowerCase()
+            );
+
+            if (exists) {
                 return prev;
             }
 
@@ -432,45 +445,100 @@ export default function AdminCatalogPage() {
         setMessage("");
 
         try {
-            const payload = {
-                categoryId: Number(productForm.categoryId),
-                name: productForm.name.trim(),
-                shortDescription: productForm.shortDescription.trim() || null,
-                longDescriptionHtml: productForm.longDescriptionHtml || null,
-                price: parseCurrencyInput(productForm.price),
-                baseCost: parseCurrencyInput(productForm.baseCost),
-                sizeOptions: productForm.sizeOptions.join(","),
-                colorOptions: productForm.colorOptions.join(","),
-                stockQuantity: Math.max(0, Number(productForm.stockQuantity || 0)),
-                sku: productForm.sku.trim().toUpperCase(),
-                audience: productForm.audience,
-                fulfillmentProvider: productForm.fulfillmentProvider,
-                externalProductId: productForm.externalProductId.trim() || null,
-                externalVariantId: productForm.externalVariantId.trim() || null,
-                externalDesignId: productForm.externalDesignId.trim() || null,
-                externalSku: productForm.externalSku.trim() || null,
-                isFulfillmentEnabled: productForm.isFulfillmentEnabled,
-                isActive: productForm.isActive,
-                productImages: productForm.productImages.map((image) => ({
-                    colorName: image.colorName,
-                    imageUrl: image.imageUrl,
-                    isPrimary: image.isPrimary
-                }))
-            };
+            if (!productForm.categoryId) {
+                throw new Error("Select a category.");
+            }
+
+            const generatedVariants = buildGeneratedVariants(productForm);
 
             if (editingProductId) {
+                if (generatedVariants.length !== 1) {
+                    throw new Error("Editing requires exactly one color and one size selected.");
+                }
+
+                const variant = generatedVariants[0];
+
+                const imagesForVariant = productForm.productImages.filter((image) => {
+                    if (!image.colorName) {
+                        return true;
+                    }
+
+                    return image.colorName.toLowerCase() === variant.colorName.toLowerCase();
+                });
+
+                const payload = {
+                    categoryId: Number(productForm.categoryId),
+                    name: productForm.name.trim(),
+                    shortDescription: productForm.shortDescription.trim() || null,
+                    longDescriptionHtml: productForm.longDescriptionHtml || null,
+                    price: parseCurrencyInput(productForm.price),
+                    baseCost: parseCurrencyInput(productForm.baseCost),
+                    sizeOptions: variant.sizeName,
+                    colorOptions: variant.colorName,
+                    stockQuantity: Math.max(0, Number(productForm.stockQuantity || 0)),
+                    sku: variant.internalSku,
+                    audience: productForm.audience,
+                    fulfillmentProvider: productForm.fulfillmentProvider,
+                    externalSku: variant.externalSku || null,
+                    isFulfillmentEnabled: productForm.isFulfillmentEnabled,
+                    isActive: productForm.isActive,
+                    productImages: imagesForVariant.map((image) => ({
+                        colorName: image.colorName,
+                        imageUrl: image.imageUrl,
+                        isPrimary: image.isPrimary
+                    }))
+                };
+
                 await updateProduct(editingProductId, payload);
                 setMessage("Product updated.");
             } else {
-                await createProduct(payload);
-                setMessage("Product created.");
+                if (generatedVariants.length === 0) {
+                    throw new Error("Add at least one color and one size.");
+                }
+
+                for (const variant of generatedVariants) {
+                    const imagesForVariant = productForm.productImages.filter((image) => {
+                        if (!image.colorName) {
+                            return true;
+                        }
+
+                        return image.colorName.toLowerCase() === variant.colorName.toLowerCase();
+                    });
+
+                    const payload = {
+                        categoryId: Number(productForm.categoryId),
+                        name: productForm.name.trim(),
+                        shortDescription: productForm.shortDescription.trim() || null,
+                        longDescriptionHtml: productForm.longDescriptionHtml || null,
+                        price: parseCurrencyInput(productForm.price),
+                        baseCost: parseCurrencyInput(productForm.baseCost),
+                        sizeOptions: variant.sizeName,
+                        colorOptions: variant.colorName,
+                        stockQuantity: Math.max(0, Number(productForm.stockQuantity || 0)),
+                        sku: variant.internalSku,
+                        audience: productForm.audience,
+                        fulfillmentProvider: productForm.fulfillmentProvider,
+                        externalSku: variant.externalSku || null,
+                        isFulfillmentEnabled: productForm.isFulfillmentEnabled,
+                        isActive: productForm.isActive,
+                        productImages: imagesForVariant.map((image) => ({
+                            colorName: image.colorName,
+                            imageUrl: image.imageUrl,
+                            isPrimary: image.isPrimary
+                        }))
+                    };
+
+                    await createProduct(payload);
+                }
+
+                setMessage(`${generatedVariants.length} product row(s) created.`);
             }
 
             setProductForm(emptyProduct);
             setEditingProductId(null);
-            setNewColor("");
             setNewImageColor("");
             setNewImageUrl("");
+            setNewColor("");
             await loadData();
         } catch (err) {
             setError(err.message || "Failed to save product.");
@@ -491,6 +559,7 @@ export default function AdminCatalogPage() {
 
     function startEditProduct(product) {
         setEditingProductId(product.productId);
+
         setProductForm({
             categoryId: String(product.categoryId ?? ""),
             name: product.name || "",
@@ -498,24 +567,20 @@ export default function AdminCatalogPage() {
             longDescriptionHtml: product.longDescriptionHtml || "",
             price: formatCurrencyDisplay(product.price ?? ""),
             baseCost: formatCurrencyDisplay(product.baseCost ?? ""),
-            sizeOptions: normalizeArrayLike(product.sizeOptions),
-            colorOptions: normalizeArrayLike(product.colorOptions),
             stockQuantity: String(product.stockQuantity ?? 9999),
-            sku: product.sku || "",
             audience: product.audience || "All",
             fulfillmentProvider: product.fulfillmentProvider || "Manual",
-            externalProductId: product.externalProductId || "",
-            externalVariantId: product.externalVariantId || "",
-            externalDesignId: product.externalDesignId || "",
             externalSku: product.externalSku || "",
             isFulfillmentEnabled: !!product.isFulfillmentEnabled,
             isActive: !!product.isActive,
+            selectedSizes: product.sizeOptions ? [product.sizeOptions] : [],
+            colorOptions: product.colorOptions ? [product.colorOptions] : [],
             productImages: normalizeProductImages(product.productImages)
         });
 
-        setNewColor("");
         setNewImageColor("");
         setNewImageUrl("");
+        setNewColor("");
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -595,10 +660,14 @@ export default function AdminCatalogPage() {
         return filteredProducts.slice(start, start + PRODUCT_PAGE_SIZE);
     }, [filteredProducts, productPage]);
 
+    const generatedVariantsPreview = useMemo(() => {
+        return buildGeneratedVariants(productForm);
+    }, [productForm]);
+
     if (loading) {
         return (
             <div className="admin-page">
-                <div className="admin-card loading-screen-space">Loading admin catalog...</div>
+                <div className="admin-card">Loading admin catalog...</div>
             </div>
         );
     }
@@ -608,7 +677,7 @@ export default function AdminCatalogPage() {
             <div className="admin-header">
                 <div>
                     <h1>Admin Catalog</h1>
-                    <p>Manage Beau North categories, products, and Apliiq-linked fulfillment mappings.</p>
+                    <p>Manage Beau North categories and bulk-create variant rows.</p>
                 </div>
 
                 <div className={`status-pill ${apliiqStatus.isValid ? "good" : "bad"}`}>
@@ -673,7 +742,7 @@ export default function AdminCatalogPage() {
                 </section>
 
                 <section className="admin-card admin-card-wide">
-                    <h2>{editingProductId ? "Edit Product" : "Add Product"}</h2>
+                    <h2>{editingProductId ? "Edit Product Row" : "Add Product Rows"}</h2>
 
                     <form onSubmit={handleProductSubmit} className="admin-form admin-form-grid">
                         <label>
@@ -814,39 +883,50 @@ export default function AdminCatalogPage() {
                             />
                         </label>
 
+                        <label>
+                            Fulfillment Provider
+                            <select
+                                name="fulfillmentProvider"
+                                value={productForm.fulfillmentProvider}
+                                onChange={handleProductChange}
+                            >
+                                <option value="Manual">Manual</option>
+                                <option value="Apliiq">Apliiq</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            External Supplier SKU
+                            <input
+                                name="externalSku"
+                                value={productForm.externalSku}
+                                onChange={handleProductChange}
+                                placeholder="Used for every generated variant row"
+                            />
+                        </label>
+
+                        <label className="checkbox-row">
+                            <input
+                                type="checkbox"
+                                name="isFulfillmentEnabled"
+                                checked={productForm.isFulfillmentEnabled}
+                                onChange={handleProductChange}
+                            />
+                            Fulfillment Enabled
+                        </label>
+
+                        <label className="checkbox-row">
+                            <input
+                                type="checkbox"
+                                name="isActive"
+                                checked={productForm.isActive}
+                                onChange={handleProductChange}
+                            />
+                            Active
+                        </label>
+
                         <div className="span-2 stacked-control">
-                            <label className="stack-label">Available Sizes</label>
-
-                            <div className="size-dropdown" ref={sizeDropdownRef}>
-                                <button
-                                    type="button"
-                                    className="size-dropdown-trigger"
-                                    onClick={() => setShowSizeDropdown((prev) => !prev)}
-                                >
-                                    {productForm.sizeOptions.length > 0
-                                        ? productForm.sizeOptions.join(", ")
-                                        : "Select sizes"}
-                                </button>
-
-                                {showSizeDropdown && (
-                                    <div className="size-dropdown-menu">
-                                        {SIZE_OPTIONS.map((size) => (
-                                            <label key={size} className="size-option-row">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={productForm.sizeOptions.includes(size)}
-                                                    onChange={() => toggleSize(size)}
-                                                />
-                                                <span>{size}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="span-2 stacked-control">
-                            <label className="stack-label">Available Colors</label>
+                            <label className="stack-label">Variant Colors</label>
 
                             <div className="inline-add-row">
                                 <input
@@ -858,7 +938,7 @@ export default function AdminCatalogPage() {
                                             addColorChip();
                                         }
                                     }}
-                                    placeholder="Type a color and press Add"
+                                    placeholder="Type a color and click Add"
                                 />
                                 <button type="button" onClick={addColorChip}>
                                     Add
@@ -873,6 +953,23 @@ export default function AdminCatalogPage() {
                                             ×
                                         </button>
                                     </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="span-2 variants-block stacked-control">
+                            <label className="stack-label">Select Sizes</label>
+
+                            <div className="size-checkbox-grid">
+                                {SIZE_OPTIONS.map((size) => (
+                                    <label key={size} className="size-option-box">
+                                        <input
+                                            type="checkbox"
+                                            checked={productForm.selectedSizes.includes(size)}
+                                            onChange={() => toggleSelectedSize(size)}
+                                        />
+                                        <span>{size}</span>
+                                    </label>
                                 ))}
                             </div>
                         </div>
@@ -934,97 +1031,48 @@ export default function AdminCatalogPage() {
                             </div>
                         </div>
 
-                        <label>
-                            SKU
-                            <input
-                                name="sku"
-                                value={productForm.sku}
-                                onChange={handleProductChange}
-                                required
-                            />
-                        </label>
+                        <div className="span-2 variants-block stacked-control">
+                            <label className="stack-label">Generated Variant Rows</label>
 
-                        <label>
-                            Fulfillment Provider
-                            <select
-                                name="fulfillmentProvider"
-                                value={productForm.fulfillmentProvider}
-                                onChange={handleProductChange}
-                            >
-                                <option value="Manual">Manual</option>
-                                <option value="Apliiq">Apliiq</option>
-                            </select>
-                        </label>
-
-                        <label className="checkbox-row">
-                            <input
-                                type="checkbox"
-                                name="isFulfillmentEnabled"
-                                checked={productForm.isFulfillmentEnabled}
-                                onChange={handleProductChange}
-                            />
-                            Fulfillment Enabled
-                        </label>
-
-                        <label>
-                            External Product ID
-                            <input
-                                name="externalProductId"
-                                value={productForm.externalProductId}
-                                onChange={handleProductChange}
-                            />
-                        </label>
-
-                        <label>
-                            External Variant ID
-                            <input
-                                name="externalVariantId"
-                                value={productForm.externalVariantId}
-                                onChange={handleProductChange}
-                            />
-                        </label>
-
-                        <label>
-                            External Design ID
-                            <input
-                                name="externalDesignId"
-                                value={productForm.externalDesignId}
-                                onChange={handleProductChange}
-                            />
-                        </label>
-
-                        <label>
-                            External Supplier SKU
-                            <input
-                                name="externalSku"
-                                value={productForm.externalSku}
-                                onChange={handleProductChange}
-                            />
-                        </label>
-
-                        <label className="checkbox-row">
-                            <input
-                                type="checkbox"
-                                name="isActive"
-                                checked={productForm.isActive}
-                                onChange={handleProductChange}
-                            />
-                            Active
-                        </label>
+                            <div className="variant-list">
+                                {generatedVariantsPreview.length === 0 ? (
+                                    <div className="variant-card">
+                                        <div className="variant-meta">
+                                            <strong>No variants yet</strong>
+                                            <span>Add colors and sizes to preview generated rows.</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    generatedVariantsPreview.map((variant) => (
+                                        <div
+                                            key={`${variant.colorName}-${variant.sizeName}`}
+                                            className="variant-card"
+                                        >
+                                            <div className="variant-meta">
+                                                <strong>{variant.colorName} / {variant.sizeName}</strong>
+                                                <span>External SKU: {variant.externalSku || "None"}</span>
+                                                <span>Internal SKU: {variant.internalSku}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
 
                         <div className="button-row span-2">
                             <button type="submit" disabled={saving}>
-                                {editingProductId ? "Save Product" : "Create Product"}
+                                {editingProductId ? "Save Product Row" : "Create Product Rows"}
                             </button>
+
                             <button
                                 type="button"
                                 className="secondary"
                                 onClick={() => {
                                     setEditingProductId(null);
                                     setProductForm(emptyProduct);
-                                    setNewColor("");
                                     setNewImageColor("");
                                     setNewImageUrl("");
+                                    setNewColor("");
                                 }}
                             >
                                 Reset
@@ -1122,6 +1170,9 @@ export default function AdminCatalogPage() {
                                 <div className="subtle">
                                     Provider: {product.fulfillmentProvider || "Manual"}
                                     {product.externalSku ? ` · External SKU: ${product.externalSku}` : ""}
+                                </div>
+                                <div className="subtle">
+                                    Size: {product.sizeOptions || "N/A"} · Color: {product.colorOptions || "N/A"}
                                 </div>
                             </div>
 
