@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { getProductById } from "../api/productApi";
+import { getProductById, getProducts } from "../api/productApi";
 import { addItemToCart } from "../api/cartApi";
 import { useAuth } from "../context/useAuth";
 import {
@@ -8,6 +8,11 @@ import {
     getImagesForColor,
     getPrimaryProductImage
 } from "../utils/productImages";
+import {
+    findGroupedSiblings,
+    findVariantForSelection,
+    normalizeOptionValue
+} from "../utils/productGrouping";
 import "./ProductDetailsPage.css";
 
 export default function ProductDetailsPage() {
@@ -16,6 +21,7 @@ export default function ProductDetailsPage() {
     const { isAuthenticated } = useAuth();
 
     const [product, setProduct] = useState(null);
+    const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [selectedSize, setSelectedSize] = useState("");
@@ -27,27 +33,13 @@ export default function ProductDetailsPage() {
     useEffect(() => {
         async function loadProduct() {
             try {
-                const data = await getProductById(id);
-                setProduct(data);
+                const [productData, productsData] = await Promise.all([
+                    getProductById(id),
+                    getProducts()
+                ]);
 
-                const sizes = data.sizeOptions
-                    ? data.sizeOptions.split(",").map((size) => size.trim()).filter(Boolean)
-                    : [];
-
-                const colorsFromOptions = data.colorOptions
-                    ? data.colorOptions.split(",").map((color) => color.trim()).filter(Boolean)
-                    : [];
-
-                const colorsFromImages = getAvailableImageColors(data);
-                const colors = colorsFromOptions.length > 0 ? colorsFromOptions : colorsFromImages;
-
-                if (sizes.length > 0) {
-                    setSelectedSize(sizes[0]);
-                }
-
-                const initialColor = colors[0] || "";
-                setSelectedColor(initialColor);
-                setSelectedImageUrl(getPrimaryProductImage(data, initialColor));
+                setProduct(productData);
+                setAllProducts(productsData.filter((item) => item.isActive));
             } catch (err) {
                 setError(err.message || "Failed to load product.");
             } finally {
@@ -58,28 +50,63 @@ export default function ProductDetailsPage() {
         loadProduct();
     }, [id]);
 
-    const sizes = useMemo(() => {
-        if (!product?.sizeOptions) return [];
-        return product.sizeOptions.split(",").map((size) => size.trim()).filter(Boolean);
-    }, [product]);
+    const siblingVariants = useMemo(() => {
+        if (!product) return [];
+        return findGroupedSiblings(allProducts, product);
+    }, [allProducts, product]);
 
     const colors = useMemo(() => {
-        const colorOptionsFromField = product?.colorOptions
-            ? product.colorOptions.split(",").map((color) => color.trim()).filter(Boolean)
-            : [];
+        const fromVariants = [
+            ...new Set(
+                siblingVariants
+                    .map((variant) => normalizeOptionValue(variant.colorOptions))
+                    .filter(Boolean)
+            )
+        ];
 
-        const colorOptionsFromImages = getAvailableImageColors(product);
-        return colorOptionsFromField.length > 0 ? colorOptionsFromField : colorOptionsFromImages;
-    }, [product]);
+        const fromImages = getAvailableImageColors(product);
+        return fromVariants.length > 0 ? fromVariants : fromImages;
+    }, [siblingVariants, product]);
+
+    const sizes = useMemo(() => {
+        return [
+            ...new Set(
+                siblingVariants
+                    .map((variant) => normalizeOptionValue(variant.sizeOptions))
+                    .filter(Boolean)
+            )
+        ];
+    }, [siblingVariants]);
+
+    useEffect(() => {
+        if (!product) return;
+
+        const initialColor = normalizeOptionValue(product.colorOptions) || colors[0] || "";
+        const initialSize = normalizeOptionValue(product.sizeOptions) || sizes[0] || "";
+
+        setSelectedColor(initialColor);
+        setSelectedSize(initialSize);
+    }, [product, colors, sizes]);
+
+    const activeVariant = useMemo(() => {
+        if (siblingVariants.length === 0) return product;
+        return findVariantForSelection(siblingVariants, selectedColor, selectedSize);
+    }, [siblingVariants, selectedColor, selectedSize, product]);
+
+    useEffect(() => {
+        if (!activeVariant) return;
+        setSelectedImageUrl(getPrimaryProductImage(activeVariant, selectedColor));
+        setQuantity(1);
+    }, [activeVariant, selectedColor]);
 
     const visibleImages = useMemo(() => {
-        if (!product) return [];
-        const byColor = getImagesForColor(product, selectedColor);
-        return byColor.length > 0 ? byColor : (product.productImages || []);
-    }, [product, selectedColor]);
+        if (!activeVariant) return [];
+        const byColor = getImagesForColor(activeVariant, selectedColor);
+        return byColor.length > 0 ? byColor : (activeVariant.productImages || []);
+    }, [activeVariant, selectedColor]);
 
     function handleQuantityChange(event) {
-        if (!product) return;
+        if (!activeVariant) return;
 
         let value = event.target.value.replace(/^0+/, "");
 
@@ -94,20 +121,15 @@ export default function ProductDetailsPage() {
             numericValue = 1;
         }
 
-        if (numericValue > product.stockQuantity) {
-            numericValue = product.stockQuantity;
+        if (numericValue > activeVariant.stockQuantity) {
+            numericValue = activeVariant.stockQuantity;
         }
 
         setQuantity(numericValue);
     }
 
-    function handleColorChange(color) {
-        setSelectedColor(color);
-        setSelectedImageUrl(getPrimaryProductImage(product, color));
-    }
-
     async function handleAddToCart() {
-        if (!product) return;
+        if (!activeVariant) return;
 
         if (!isAuthenticated) {
             navigate("/login");
@@ -116,7 +138,7 @@ export default function ProductDetailsPage() {
 
         try {
             await addItemToCart({
-                productId: product.productId,
+                productId: activeVariant.productId,
                 quantity,
                 sizeSelected: selectedSize || null,
                 colorSelected: selectedColor || null
@@ -138,7 +160,7 @@ export default function ProductDetailsPage() {
         return <p className="product-details-status product-details-error">{error}</p>;
     }
 
-    if (!product) {
+    if (!product || !activeVariant) {
         return <p className="product-details-status">Product not found.</p>;
     }
 
@@ -151,17 +173,19 @@ export default function ProductDetailsPage() {
 
                 <div className="product-details-card">
                     <div className="product-details-media-column">
-                        {selectedImageUrl ? (
-                            <img
-                                src={selectedImageUrl}
-                                alt={product.name}
-                                className="product-details-image"
-                            />
-                        ) : (
-                            <div className="product-details-image product-details-image-placeholder">
-                                No Image
-                            </div>
-                        )}
+                        <div className="product-details-image-frame">
+                            {selectedImageUrl ? (
+                                <img
+                                    src={selectedImageUrl}
+                                    alt={product.name}
+                                    className="product-details-image"
+                                />
+                            ) : (
+                                <div className="product-details-image product-details-image-placeholder">
+                                    No Image
+                                </div>
+                            )}
+                        </div>
 
                         {visibleImages.length > 1 && (
                             <div className="product-details-thumbnails">
@@ -169,8 +193,7 @@ export default function ProductDetailsPage() {
                                     <button
                                         key={`${image.colorName}-${image.imageUrl}`}
                                         type="button"
-                                        className={`product-details-thumbnail-button ${selectedImageUrl === image.imageUrl ? "active" : ""
-                                            }`}
+                                        className={`product-details-thumbnail-button ${selectedImageUrl === image.imageUrl ? "active" : ""}`}
                                         onClick={() => setSelectedImageUrl(image.imageUrl)}
                                     >
                                         <img
@@ -224,7 +247,7 @@ export default function ProductDetailsPage() {
                                 <select
                                     className="product-details-select"
                                     value={selectedColor}
-                                    onChange={(e) => handleColorChange(e.target.value)}
+                                    onChange={(e) => setSelectedColor(e.target.value)}
                                 >
                                     {colors.map((color) => (
                                         <option key={color} value={color}>
@@ -241,14 +264,14 @@ export default function ProductDetailsPage() {
                                 className="product-details-input"
                                 type="number"
                                 min="1"
-                                max={product.stockQuantity}
+                                max={activeVariant.stockQuantity}
                                 value={quantity}
                                 onChange={handleQuantityChange}
                             />
                         </div>
 
                         <p className="product-details-stock">
-                            In Stock: {product.stockQuantity}
+                            In Stock: {activeVariant.stockQuantity}
                         </p>
 
                         <button

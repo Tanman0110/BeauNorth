@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getProducts } from "../api/productApi";
 import { motion } from "framer-motion";
 import { getPrimaryProductImage } from "../utils/productImages";
+import { groupProductsForDisplay } from "../utils/productGrouping";
 import mascot from "../assets/mascot.jpeg";
 import "./HomePage.css";
 
@@ -29,7 +30,8 @@ export default function HomePage() {
             try {
                 const data = await getProducts();
                 const activeProducts = data.filter((product) => product.isActive);
-                setProducts(shuffleArray(activeProducts));
+                const groupedProducts = groupProductsForDisplay(activeProducts);
+                setProducts(shuffleArray(groupedProducts));
             } finally {
                 setLoading(false);
             }
@@ -185,17 +187,19 @@ export default function HomePage() {
                                             to={`/products/${product.productId}`}
                                             className="home-carousel-card"
                                         >
-                                            {imageUrl ? (
-                                                <img
-                                                    src={imageUrl}
-                                                    alt={product.name}
-                                                    className="home-carousel-image"
-                                                />
-                                            ) : (
-                                                <div className="home-carousel-image home-carousel-image-placeholder">
-                                                    No Image
-                                                </div>
-                                            )}
+                                            <div className="home-carousel-image-frame">
+                                                {imageUrl ? (
+                                                    <img
+                                                        src={imageUrl}
+                                                        alt={product.name}
+                                                        className="home-carousel-image"
+                                                    />
+                                                ) : (
+                                                    <div className="home-carousel-image home-carousel-image-placeholder">
+                                                        No Image
+                                                    </div>
+                                                )}
+                                            </div>
 
                                             <div className="home-carousel-card-body">
                                                 <p className="home-carousel-category">

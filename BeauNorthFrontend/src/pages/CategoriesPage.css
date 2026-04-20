@@ -34,6 +34,7 @@
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
 }
 
     .category-card:hover {
@@ -43,16 +44,21 @@
 
 .category-card-image-wrapper {
     width: 100%;
-    height: 260px;
-    background: #eeeeee;
+    height: 280px;
+    background: #f3f3f3;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .category-card-image {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
     display: block;
+    background: #f3f3f3;
 }
 
 .category-card-image-placeholder {
@@ -63,7 +69,7 @@
     justify-content: center;
     color: #777777;
     font-size: 0.95rem;
-    background: #eeeeee;
+    background: #f3f3f3;
 }
 
 .category-card-body {

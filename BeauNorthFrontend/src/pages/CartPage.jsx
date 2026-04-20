@@ -96,8 +96,15 @@ export default function CartPage() {
                     <div className="cart-layout">
                         <div className="cart-items">
                             {cartItems.map((item) => {
+                                const imageSource = item.product?.productImages?.length
+                                    ? item.product
+                                    : {
+                                        ...item.product,
+                                        productImages: item.productImages || []
+                                    };
+
                                 const imageUrl = getPrimaryProductImage(
-                                    item.product,
+                                    imageSource,
                                     item.colorSelected || null
                                 );
 

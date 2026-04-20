@@ -1,16 +1,26 @@
+function normalizeColor(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+function normalizeImages(product) {
+    return Array.isArray(product?.productImages)
+        ? product.productImages.filter((image) => image?.imageUrl)
+        : [];
+}
+
 export function getPrimaryProductImage(product, selectedColor = null) {
-    const images = Array.isArray(product?.productImages) ? product.productImages : [];
+    const images = normalizeImages(product);
 
     if (!images.length) {
         return "";
     }
 
-    if (selectedColor) {
-        const normalizedColor = selectedColor.toLowerCase();
+    const normalizedSelectedColor = normalizeColor(selectedColor);
 
+    if (normalizedSelectedColor) {
         const colorPrimary = images.find(
             (image) =>
-                image.colorName?.toLowerCase() === normalizedColor &&
+                normalizeColor(image.colorName) === normalizedSelectedColor &&
                 image.isPrimary
         );
 
@@ -19,7 +29,7 @@ export function getPrimaryProductImage(product, selectedColor = null) {
         }
 
         const colorMatch = images.find(
-            (image) => image.colorName?.toLowerCase() === normalizedColor
+            (image) => normalizeColor(image.colorName) === normalizedSelectedColor
         );
 
         if (colorMatch?.imageUrl) {
@@ -36,19 +46,26 @@ export function getPrimaryProductImage(product, selectedColor = null) {
 }
 
 export function getImagesForColor(product, colorName) {
-    const images = Array.isArray(product?.productImages) ? product.productImages : [];
+    const images = normalizeImages(product);
+    const normalizedColor = normalizeColor(colorName);
 
-    if (!colorName) {
+    if (!normalizedColor) {
         return images;
     }
 
     return images.filter(
-        (image) => image.colorName?.toLowerCase() === colorName.toLowerCase()
+        (image) => normalizeColor(image.colorName) === normalizedColor
     );
 }
 
 export function getAvailableImageColors(product) {
-    const images = Array.isArray(product?.productImages) ? product.productImages : [];
+    const images = normalizeImages(product);
 
-    return [...new Set(images.map((image) => image.colorName).filter(Boolean))];
+    return [
+        ...new Set(
+            images
+                .map((image) => String(image.colorName || "").trim())
+                .filter(Boolean)
+        )
+    ];
 }

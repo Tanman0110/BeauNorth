@@ -14,17 +14,19 @@ export default function ProductCard({ product }) {
             to={`/products/${product.productId}`}
             className="product-card"
         >
-            {imageUrl ? (
-                <img
-                    src={imageUrl}
-                    alt={product.name}
-                    className="product-card-image"
-                />
-            ) : (
-                <div className="product-card-image product-card-image-placeholder">
-                    No Image
-                </div>
-            )}
+            <div className="product-card-media">
+                {imageUrl ? (
+                    <img
+                        src={imageUrl}
+                        alt={product.name}
+                        className="product-card-image"
+                    />
+                ) : (
+                    <div className="product-card-image product-card-image-placeholder">
+                        No Image
+                    </div>
+                )}
+            </div>
 
             <div className="product-card-body">
                 <p className="product-card-category">

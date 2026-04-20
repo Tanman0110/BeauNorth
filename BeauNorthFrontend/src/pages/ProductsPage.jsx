@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getProducts } from "../api/productApi";
 import ProductCard from "../components/ProductCard";
+import { groupProductsForDisplay } from "../utils/productGrouping";
 import "./ProductsPage.css";
 
 const PRODUCTS_PER_PAGE = 20;
@@ -51,7 +52,10 @@ export default function ProductsPage() {
         async function loadProducts() {
             try {
                 const data = await getProducts();
-                setProducts(data.filter((product) => product.isActive));
+                const grouped = groupProductsForDisplay(
+                    data.filter((product) => product.isActive)
+                );
+                setProducts(grouped);
             } catch (err) {
                 setError(err.message || "Failed to load products.");
             } finally {

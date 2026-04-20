@@ -7,6 +7,7 @@
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
 }
 
     .product-card:hover {
@@ -14,11 +15,23 @@
         box-shadow: 0 14px 32px rgba(0, 0, 0, 0.1);
     }
 
+.product-card-media {
+    width: 100%;
+    height: 320px;
+    background: #f3f3f3;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .product-card-image {
     width: 100%;
-    height: 260px;
-    object-fit: cover;
-    background: #eeeeee;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    transform: scale(1.08);
+    background: #f3f3f3;
     display: block;
 }
 
@@ -28,6 +41,8 @@
     justify-content: center;
     color: #777777;
     font-weight: 600;
+    width: 100%;
+    height: 100%;
 }
 
 .product-card-body {
