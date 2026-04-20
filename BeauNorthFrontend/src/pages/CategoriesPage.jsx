@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getCategories } from "../api/categoryApi";
 import { getProducts } from "../api/productApi";
+import { getPrimaryProductImage } from "../utils/productImages";
 import "./CategoriesPage.css";
 
 export default function CategoriesPage() {
@@ -25,15 +26,16 @@ export default function CategoriesPage() {
 
                 activeCategories.forEach((category) => {
                     const productsInCategory = activeProducts.filter(
-                        (product) =>
-                            product.categoryId === category.categoryId &&
-                            product.imageUrl &&
-                            product.imageUrl.trim() !== ""
+                        (product) => product.categoryId === category.categoryId
                     );
 
-                    if (productsInCategory.length > 0) {
-                        const randomIndex = Math.floor(Math.random() * productsInCategory.length);
-                        imageMap[category.categoryId] = productsInCategory[randomIndex].imageUrl;
+                    const productsWithImages = productsInCategory.filter(
+                        (product) => !!getPrimaryProductImage(product)
+                    );
+
+                    if (productsWithImages.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * productsWithImages.length);
+                        imageMap[category.categoryId] = getPrimaryProductImage(productsWithImages[randomIndex]);
                     }
                 });
 
@@ -50,7 +52,7 @@ export default function CategoriesPage() {
     }, []);
 
     if (loading) {
-        return <p className="categories-status">Loading categories...</p>;
+        return <p className="categories-status loading-screen-space">Loading categories...</p>;
     }
 
     if (error) {

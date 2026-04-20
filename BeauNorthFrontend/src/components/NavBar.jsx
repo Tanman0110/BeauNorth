@@ -27,6 +27,8 @@ export default function Navbar() {
     const addressRef = useRef(null);
     const accountRef = useRef(null);
 
+    const isAdmin = user?.role === "Admin";
+
     useEffect(() => {
         async function loadNavData() {
             try {
@@ -344,6 +346,19 @@ export default function Navbar() {
                                     >
                                         Account
                                     </button>
+
+                                    {isAdmin && (
+                                        <button
+                                            type="button"
+                                            className="navbar-account-item"
+                                            onClick={() => {
+                                                setShowAccountDropdown(false);
+                                                navigate("/admin/catalog");
+                                            }}
+                                        >
+                                            Admin Catalog
+                                        </button>
+                                    )}
 
                                     <button
                                         type="button"
