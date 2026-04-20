@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using BeauNorthApi.Data;
+using BeauNorthAPI.Options;
 using System.Text;
 using System.Text.Json.Serialization;
+using BeauNorthAPI.Services.Apliiq;
+using BeauNorthAPI.Services.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +22,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<BeauNorthAPI.Services.IEmailService, BeauNorthAPI.Services.EmailService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.Configure<ApliiqOptions>(builder.Configuration.GetSection("Apliiq"));
+builder.Services.AddHttpClient<IApliiqService, ApliiqService>();
 
 builder.Services.AddCors(options =>
 {

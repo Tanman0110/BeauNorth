@@ -24,6 +24,21 @@ namespace BeauNorthAPI.Controllers
         {
             var products = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+
+            return Ok(products);
+        }
+
+        [HttpGet("active")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetActiveProducts()
+        {
+            var products = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                .Where(p => p.IsActive)
                 .OrderBy(p => p.Name)
                 .ToListAsync();
 
@@ -36,6 +51,7 @@ namespace BeauNorthAPI.Controllers
         {
             var product = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductImages)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (product == null)
@@ -61,32 +77,59 @@ namespace BeauNorthAPI.Controllers
                 return BadRequest("Invalid CategoryId.");
             }
 
-            var skuExists = await _context.Products.AnyAsync(p => p.Sku == request.Sku);
+            var normalizedSku = request.Sku.Trim().ToUpperInvariant();
+
+            var skuExists = await _context.Products.AnyAsync(p => p.Sku == normalizedSku);
             if (skuExists)
             {
                 return BadRequest("SKU already exists.");
+            }
+
+            if (request.IsFulfillmentEnabled &&
+                string.Equals(request.FulfillmentProvider?.Trim(), "Apliiq", StringComparison.OrdinalIgnoreCase) &&
+                string.IsNullOrWhiteSpace(request.ExternalSku))
+            {
+                return BadRequest("Apliiq-enabled products require ExternalSku.");
             }
 
             var product = new Product
             {
                 CategoryId = request.CategoryId,
                 Name = request.Name.Trim(),
-                Description = request.Description?.Trim(),
+                ShortDescription = request.ShortDescription?.Trim(),
+                LongDescriptionHtml = request.LongDescriptionHtml,
                 Price = request.Price,
-                ImageUrl = request.ImageUrl?.Trim(),
+                BaseCost = request.BaseCost,
                 SizeOptions = request.SizeOptions?.Trim(),
                 ColorOptions = request.ColorOptions?.Trim(),
                 StockQuantity = request.StockQuantity,
-                Sku = request.Sku.Trim().ToUpper(),
+                Sku = normalizedSku,
+                Audience = string.IsNullOrWhiteSpace(request.Audience) ? "All" : request.Audience.Trim(),
+                FulfillmentProvider = string.IsNullOrWhiteSpace(request.FulfillmentProvider)
+                    ? "Manual"
+                    : request.FulfillmentProvider.Trim(),
+                ExternalSku = request.ExternalSku?.Trim(),
+                IsFulfillmentEnabled = request.IsFulfillmentEnabled,
                 IsActive = request.IsActive,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                ProductImages = request.ProductImages.Select(image => new ProductImage
+                {
+                    ColorName = image.ColorName.Trim(),
+                    ImageUrl = image.ImageUrl.Trim(),
+                    IsPrimary = image.IsPrimary
+                }).ToList()
             };
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, product);
+            var createdProduct = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                .FirstAsync(p => p.ProductId == product.ProductId);
+
+            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, createdProduct);
         }
 
         [Authorize(Roles = "Admin")]
@@ -98,7 +141,10 @@ namespace BeauNorthAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Products
+                .Include(p => p.ProductImages)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+
             if (product == null)
             {
                 return NotFound();
@@ -110,23 +156,51 @@ namespace BeauNorthAPI.Controllers
                 return BadRequest("Invalid CategoryId.");
             }
 
-            var skuExists = await _context.Products.AnyAsync(p => p.Sku == request.Sku && p.ProductId != id);
+            var normalizedSku = request.Sku.Trim().ToUpperInvariant();
+
+            var skuExists = await _context.Products.AnyAsync(p => p.Sku == normalizedSku && p.ProductId != id);
             if (skuExists)
             {
                 return BadRequest("SKU already exists.");
             }
 
+            if (request.IsFulfillmentEnabled &&
+                string.Equals(request.FulfillmentProvider?.Trim(), "Apliiq", StringComparison.OrdinalIgnoreCase) &&
+                string.IsNullOrWhiteSpace(request.ExternalSku))
+            {
+                return BadRequest("Apliiq-enabled products require ExternalSku.");
+            }
+
             product.CategoryId = request.CategoryId;
             product.Name = request.Name.Trim();
-            product.Description = request.Description?.Trim();
+            product.ShortDescription = request.ShortDescription?.Trim();
+            product.LongDescriptionHtml = request.LongDescriptionHtml;
             product.Price = request.Price;
-            product.ImageUrl = request.ImageUrl?.Trim();
+            product.BaseCost = request.BaseCost;
             product.SizeOptions = request.SizeOptions?.Trim();
             product.ColorOptions = request.ColorOptions?.Trim();
             product.StockQuantity = request.StockQuantity;
-            product.Sku = request.Sku.Trim().ToUpper();
+            product.Sku = normalizedSku;
+            product.Audience = string.IsNullOrWhiteSpace(request.Audience) ? "All" : request.Audience.Trim();
+            product.FulfillmentProvider = string.IsNullOrWhiteSpace(request.FulfillmentProvider)
+                ? "Manual"
+                : request.FulfillmentProvider.Trim();
+            product.ExternalSku = request.ExternalSku?.Trim();
+            product.IsFulfillmentEnabled = request.IsFulfillmentEnabled;
             product.IsActive = request.IsActive;
             product.UpdatedAt = DateTime.UtcNow;
+
+            product.ProductImages.Clear();
+
+            foreach (var image in request.ProductImages)
+            {
+                product.ProductImages.Add(new ProductImage
+                {
+                    ColorName = image.ColorName.Trim(),
+                    ImageUrl = image.ImageUrl.Trim(),
+                    IsPrimary = image.IsPrimary
+                });
+            }
 
             await _context.SaveChangesAsync();
 

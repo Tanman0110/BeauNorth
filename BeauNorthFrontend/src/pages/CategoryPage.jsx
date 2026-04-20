@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { getCategoryById } from "../api/categoryApi";
 import { getProducts } from "../api/productApi";
 import ProductCard from "../components/ProductCard";
+import { groupProductsForDisplay } from "../utils/productGrouping";
 import "./CategoryPage.css";
 
 export default function CategoryPage() {
@@ -22,7 +23,11 @@ export default function CategoryPage() {
                 ]);
 
                 setCategory(categoryData);
-                setProducts(productsData.filter((product) => product.isActive));
+                setProducts(
+                    groupProductsForDisplay(
+                        productsData.filter((product) => product.isActive)
+                    )
+                );
             } catch (err) {
                 setError(err.message || "Failed to load category.");
             } finally {
@@ -40,7 +45,7 @@ export default function CategoryPage() {
     }, [products, id]);
 
     if (loading) {
-        return <p className="category-page-status">Loading category...</p>;
+        return <p className="category-page-status loading-screen-space">Loading category...</p>;
     }
 
     if (error) {

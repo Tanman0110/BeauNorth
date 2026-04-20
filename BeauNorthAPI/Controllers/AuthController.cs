@@ -5,11 +5,11 @@ using Microsoft.IdentityModel.Tokens;
 using BeauNorthApi.Data;
 using BeauNorthAPI.DTOs.Auth;
 using BeauNorthAPI.Models;
-using BeauNorthAPI.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using BeauNorthAPI.Services.Email;
 
 namespace BeauNorthAPI.Controllers
 {

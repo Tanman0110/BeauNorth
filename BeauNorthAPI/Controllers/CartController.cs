@@ -33,7 +33,8 @@ namespace BeauNorthAPI.Controllers
 
             var fullCart = await _context.Carts
                 .Include(c => c.CartItems)
-                    .ThenInclude(ci => ci.Product)
+                    .ThenInclude(ci => ci.Product!)
+                        .ThenInclude(p => p.ProductImages)
                 .FirstOrDefaultAsync(c => c.CartId == cart.CartId);
 
             return Ok(fullCart);

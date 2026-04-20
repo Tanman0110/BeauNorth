@@ -34,3 +34,8 @@ select {
 html {
     overflow-y: scroll;
 }
+
+.loading-screen-space {
+    min-height: 70vh;
+    padding-bottom: 100rem;
+}

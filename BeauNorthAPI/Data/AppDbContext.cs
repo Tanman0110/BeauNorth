@@ -8,9 +8,11 @@ namespace BeauNorthApi.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
+
         public DbSet<User> Users => Set<User>();
         public DbSet<Category> Categories => Set<Category>();
         public DbSet<Product> Products => Set<Product>();
+        public DbSet<ProductImage> ProductImages => Set<ProductImage>();
         public DbSet<Cart> Carts => Set<Cart>();
         public DbSet<CartItem> CartItems => Set<CartItem>();
         public DbSet<Order> Orders => Set<Order>();
@@ -42,6 +44,10 @@ namespace BeauNorthApi.Data
 
             modelBuilder.Entity<Product>()
                 .Property(p => p.Price)
+                .HasPrecision(10, 2);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.BaseCost)
                 .HasPrecision(10, 2);
 
             modelBuilder.Entity<CartItem>()
@@ -77,6 +83,12 @@ namespace BeauNorthApi.Data
                 .WithOne(p => p.Category)
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.ProductImages)
+                .WithOne(pi => pi.Product)
+                .HasForeignKey(pi => pi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Orders)

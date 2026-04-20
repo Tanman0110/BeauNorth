@@ -1,7 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import AuthProvider from "./context/AuthContext";
+import AuthProvider from "./context/AuthProvider";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import AdminRoute from "./components/AdminRoute";
 import HomePage from "./pages/HomePage";
 import ProductsPage from "./pages/ProductsPage";
 import ProductDetailsPage from "./pages/ProductDetailsPage";
@@ -15,6 +16,8 @@ import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AccountPage from "./pages/AccountPage";
+import AccessDeniedPage from "./pages/AccessDeniedPage";
+import AdminCatalogPage from "./pages/AdminCatalogPage";
 import "./App.css";
 
 export default function App() {
@@ -23,6 +26,7 @@ export default function App() {
             <AuthProvider>
                 <div className="app-shell">
                     <Navbar />
+
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/products" element={<ProductsPage />} />
@@ -37,7 +41,13 @@ export default function App() {
                         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                         <Route path="/reset-password" element={<ResetPasswordPage />} />
                         <Route path="/account" element={<AccountPage />} />
+                        <Route path="/access-denied" element={<AccessDeniedPage />} />
+
+                        <Route element={<AdminRoute />}>
+                            <Route path="/admin/catalog" element={<AdminCatalogPage />} />
+                        </Route>
                     </Routes>
+
                     <Footer />
                 </div>
             </AuthProvider>
