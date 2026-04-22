@@ -58,6 +58,37 @@
     color: #555555;
 }
 
+.order-fulfillment-box {
+    background: #fafafa;
+    border: 1px solid #ebebeb;
+    border-radius: 14px;
+    padding: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.order-fulfillment-title {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+    color: #111111;
+}
+
+.order-fulfillment-box p {
+    margin: 0.35rem 0;
+    color: #333333;
+}
+
+.order-tracking-link {
+    display: inline-block;
+    text-decoration: none;
+    background: #111111;
+    color: #ffffff;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
+    margin-top: 0.25rem;
+}
+
 .orders-status {
     padding: 2rem;
 }

@@ -41,7 +41,22 @@ export default function CartPage() {
     }
 
     const cartItems = cart?.cartItems || [];
-    const subtotal = cartItems.reduce((total, item) => total + Number(item.unitPrice) * item.quantity, 0);
+    const subtotal = cartItems.reduce((total, item) => {
+        const normalizedSize = String(item.sizeSelected || "").trim().toUpperCase();
+
+        const sizeSurchargePerUnit =
+            normalizedSize === "XXL"
+                ? 2
+                : normalizedSize === "XXXL"
+                    ? 3
+                    : 0;
+
+        const itemTotal =
+            (Number(item.unitPrice) * Number(item.quantity)) +
+            (sizeSurchargePerUnit * Number(item.quantity));
+
+        return total + itemTotal;
+    }, 0);
 
     async function handleUpdateQuantity(cartItemId, newQuantity) {
         if (newQuantity < 1) return;
@@ -95,82 +110,130 @@ export default function CartPage() {
                 ) : (
                     <div className="cart-layout">
                         <div className="cart-items">
-                            {cartItems.map((item) => {
-                                const imageSource = item.product?.productImages?.length
-                                    ? item.product
-                                    : {
-                                        ...item.product,
-                                        productImages: item.productImages || []
-                                    };
+                                {cartItems.map((item) => {
+                                    const imageSource = item.product?.productImages?.length
+                                        ? item.product
+                                        : {
+                                            ...item.product,
+                                            productImages: item.productImages || []
+                                        };
 
-                                const imageUrl = getPrimaryProductImage(
-                                    imageSource,
-                                    item.colorSelected || null
-                                );
+                                    const imageUrl = getPrimaryProductImage(
+                                        imageSource,
+                                        item.colorSelected || null
+                                    );
 
-                                return (
-                                    <article key={item.cartItemId} className="cart-item">
-                                        {imageUrl ? (
-                                            <img
-                                                src={imageUrl}
-                                                alt={item.product?.name}
-                                                className="cart-item-image"
-                                            />
-                                        ) : (
-                                            <div className="cart-item-image cart-item-image-placeholder">
-                                                No Image
-                                            </div>
-                                        )}
+                                    const normalizedSize = String(item.sizeSelected || "").trim().toUpperCase();
 
-                                        <div className="cart-item-content">
-                                            <h2 className="cart-item-title">
-                                                {item.product?.name}
-                                            </h2>
+                                    const sizeSurchargePerUnit =
+                                        normalizedSize === "XXL"
+                                            ? 2
+                                            : normalizedSize === "XXXL"
+                                                ? 3
+                                                : 0;
 
-                                            {item.sizeSelected && (
-                                                <p className="cart-item-meta">
-                                                    Size: {item.sizeSelected}
-                                                </p>
+                                    const basePricePerUnit = Number(item.unitPrice);
+                                    const itemTotal =
+                                        (basePricePerUnit * Number(item.quantity)) +
+                                        (sizeSurchargePerUnit * Number(item.quantity));
+
+                                    return (
+                                        <article key={item.cartItemId} className="cart-item">
+                                            {imageUrl ? (
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={item.product?.name}
+                                                    className="cart-item-image"
+                                                />
+                                            ) : (
+                                                <div className="cart-item-image cart-item-image-placeholder">
+                                                    No Image
+                                                </div>
                                             )}
 
-                                            {item.colorSelected && (
-                                                <p className="cart-item-meta">
-                                                    Color: {item.colorSelected}
-                                                </p>
-                                            )}
+                                            <div className="cart-item-content">
+                                                <div className="cart-item-top">
+                                                    <div className="cart-item-header">
+                                                        <h2 className="cart-item-title">
+                                                            {item.product?.name}
+                                                        </h2>
 
-                                            <p className="cart-item-price">
-                                                ${Number(item.unitPrice).toFixed(2)}
-                                            </p>
+                                                        {item.sizeSelected && (
+                                                            <p className="cart-item-meta">
+                                                                Size: {item.sizeSelected}
+                                                            </p>
+                                                        )}
 
-                                            <div className="cart-item-actions">
-                                                <button
-                                                    className="cart-qty-button"
-                                                    onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1)}
-                                                >
-                                                    -
-                                                </button>
+                                                        {item.colorSelected && (
+                                                            <p className="cart-item-meta">
+                                                                Color: {item.colorSelected}
+                                                            </p>
+                                                        )}
+                                                    </div>
 
-                                                <span className="cart-qty-value">{item.quantity}</span>
+                                                    <div className="cart-item-qty-controls">
+                                                        <button
+                                                            className="cart-qty-button"
+                                                            onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity - 1)}
+                                                        >
+                                                            -
+                                                        </button>
 
-                                                <button
-                                                    className="cart-qty-button"
-                                                    onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
-                                                >
-                                                    +
-                                                </button>
+                                                        <span className="cart-qty-value">{item.quantity}</span>
 
-                                                <button
-                                                    className="cart-remove-button"
-                                                    onClick={() => handleRemoveItem(item.cartItemId)}
-                                                >
-                                                    Remove
-                                                </button>
+                                                        <button
+                                                            className="cart-qty-button"
+                                                            onClick={() => handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
+                                                        >
+                                                            +
+                                                        </button>
+
+                                                        <div className="cart-item-actions">
+                                                        <button
+                                                            className="cart-remove-button"
+                                                            onClick={() => handleRemoveItem(item.cartItemId)}
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="cart-item-pricing">
+                                                    <p className="cart-item-price-row">
+                                                        <span className="cart-item-price-label">Base Price:</span>
+                                                        <span className="cart-item-price-value">
+                                                            ${basePricePerUnit.toFixed(2)}
+                                                        </span>
+                                                    </p>
+
+                                                    {sizeSurchargePerUnit > 0 && (
+                                                        <p className="cart-item-price-row">
+                                                            <span className="cart-item-price-label">Size Cost:</span>
+                                                            <span className="cart-item-price-value">
+                                                                ${sizeSurchargePerUnit.toFixed(2)}
+                                                            </span>
+                                                        </p>
+                                                    )}
+
+                                                    <p className="cart-item-price-row">
+                                                        <span className="cart-item-price-label">Quantity:</span>
+                                                        <span className="cart-item-price-value">
+                                                            {item.quantity}
+                                                        </span>
+                                                    </p>
+
+                                                    <p className="cart-item-price cart-item-total">
+                                                        <span className="cart-item-price-label">Item(s) Total:</span>
+                                                        <span className="cart-item-price-value">
+                                                            ${itemTotal.toFixed(2)}
+                                                        </span>
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </article>
-                                );
-                            })}
+                                        </article>
+                                    );
+                                })}
                         </div>
 
                         <aside className="cart-summary">

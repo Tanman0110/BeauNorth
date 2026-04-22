@@ -15,6 +15,20 @@ import {
 } from "../utils/productGrouping";
 import "./ProductDetailsPage.css";
 
+function getSizeLabel(size) {
+    const normalized = String(size || "").trim().toUpperCase();
+
+    if (normalized === "XXL") {
+        return `${size} (+2.00)`;
+    }
+
+    if (normalized === "XXXL") {
+        return `${size} (+3.00)`;
+    }
+
+    return size;
+}
+
 export default function ProductDetailsPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -69,13 +83,25 @@ export default function ProductDetailsPage() {
     }, [siblingVariants, product]);
 
     const sizes = useMemo(() => {
-        return [
+        const orderedSizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "One Size"];
+
+        const uniqueSizes = [
             ...new Set(
                 siblingVariants
                     .map((variant) => normalizeOptionValue(variant.sizeOptions))
                     .filter(Boolean)
             )
         ];
+
+        return uniqueSizes.sort((a, b) => {
+            const indexA = orderedSizes.indexOf(a);
+            const indexB = orderedSizes.indexOf(b);
+
+            const safeIndexA = indexA === -1 ? Number.MAX_SAFE_INTEGER : indexA;
+            const safeIndexB = indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB;
+
+            return safeIndexA - safeIndexB || a.localeCompare(b);
+        });
     }, [siblingVariants]);
 
     useEffect(() => {
@@ -234,7 +260,7 @@ export default function ProductDetailsPage() {
                                 >
                                     {sizes.map((size) => (
                                         <option key={size} value={size}>
-                                            {size}
+                                            {getSizeLabel(size)}
                                         </option>
                                     ))}
                                 </select>

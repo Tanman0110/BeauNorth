@@ -1,12 +1,13 @@
+using System.Text;
+using System.Text.Json.Serialization;
+using BeauNorthApi.Data;
+using BeauNorthAPI.Options;
+using BeauNorthAPI.Services.Apliiq;
+using BeauNorthAPI.Services.Email;
+using BeauNorthAPI.Services.Payments;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using BeauNorthApi.Data;
-using BeauNorthAPI.Options;
-using System.Text;
-using System.Text.Json.Serialization;
-using BeauNorthAPI.Services.Apliiq;
-using BeauNorthAPI.Services.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,11 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.Configure<ApliiqOptions>(builder.Configuration.GetSection("Apliiq"));
 builder.Services.AddHttpClient<IApliiqService, ApliiqService>();
+
+builder.Services.Configure<PayPalOptions>(builder.Configuration.GetSection("PayPal"));
+builder.Services.AddHttpClient<IPayPalService, PayPalService>();
+
+builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection("Checkout"));
 
 builder.Services.AddCors(options =>
 {

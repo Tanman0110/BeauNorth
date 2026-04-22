@@ -16,6 +16,16 @@ namespace BeauNorthAPI.Models
         [MaxLength(255)]
         public string? ProviderPaymentId { get; set; }
 
+        [MaxLength(255)]
+        public string? ProviderOrderId { get; set; }
+
+        [MaxLength(50)]
+        public string? PaymentMethodType { get; set; }
+
+        [MaxLength(255)]
+        [EmailAddress]
+        public string? PayerEmail { get; set; }
+
         [Required]
         [MaxLength(50)]
         public string Status { get; set; } = "Pending";

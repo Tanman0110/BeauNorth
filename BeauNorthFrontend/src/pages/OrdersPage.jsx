@@ -64,6 +64,31 @@ export default function OrdersPage() {
                                 <p><strong>Total:</strong> ${Number(order.totalAmount).toFixed(2)}</p>
                                 <p><strong>Placed:</strong> {new Date(order.createdAt).toLocaleString()}</p>
 
+                                {order.fulfillmentOrder && (
+                                    <div className="order-fulfillment-box">
+                                        <h3 className="order-fulfillment-title">Fulfillment</h3>
+                                        <p><strong>Provider:</strong> {order.fulfillmentOrder.provider || "N/A"}</p>
+                                        <p><strong>Status:</strong> {order.fulfillmentOrder.fulfillmentStatus || "Pending"}</p>
+
+                                        {order.fulfillmentOrder.trackingNumber && (
+                                            <p><strong>Tracking Number:</strong> {order.fulfillmentOrder.trackingNumber}</p>
+                                        )}
+
+                                        {order.fulfillmentOrder.trackingUrl && (
+                                            <p>
+                                                <a
+                                                    href={order.fulfillmentOrder.trackingUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="order-tracking-link"
+                                                >
+                                                    Track Package
+                                                </a>
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="order-items">
                                     {order.orderItems?.map((item) => (
                                         <div key={item.orderItemId} className="order-item-row">
