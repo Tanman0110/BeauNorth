@@ -33,16 +33,21 @@ builder.Services.AddHttpClient<IPayPalService, PayPalService>();
 
 builder.Services.Configure<CheckoutOptions>(builder.Configuration.GetSection("Checkout"));
 
-builder.Services.AddCors(options =>
+var allowedOrigins = builder.Configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
+if (allowedOrigins.Length > 0)
 {
-    options.AddPolicy("FrontendPolicy", policy =>
+    builder.Services.AddCors(options =>
     {
-        policy
-            .WithOrigins("http://localhost:63146")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        options.AddPolicy("FrontendPolicy", policy =>
+        {
+            policy
+                .WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
     });
-});
+}
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSettings["Key"] ?? throw new InvalidOperationException("JWT key not configured.");
@@ -54,7 +59,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.SaveToken = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -78,14 +83,26 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHttpsRedirection();
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 
-// app.UseHttpsRedirection();
-
-app.UseCors("FrontendPolicy");
+if (allowedOrigins.Length > 0)
+{
+    app.UseCors("FrontendPolicy");
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();

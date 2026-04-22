@@ -1,0 +1,92 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: Release
+  apiProject: BeauNorthAPI/BeauNorthAPI.csproj
+  frontendDir: BeauNorthFrontend
+  publishDir: $(Build.ArtifactStagingDirectory)/publish
+  webAppName: YOUR_APP_SERVICE_NAME
+  resourceGroupName: YOUR_RESOURCE_GROUP_NAME
+  azureServiceConnection: YOUR_AZURE_SERVICE_CONNECTION_NAME
+
+stages:
+- stage: BuildAndDeploy
+  jobs:
+  - job: BuildDeploy
+    steps:
+    - task: UseDotNet@2
+      inputs:
+        packageType: sdk
+        version: '10.0.x'
+
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.x'
+
+    - script: |
+        cd $(frontendDir)
+        cat > .env.production <<EOF
+        VITE_PAYPAL_CLIENT_ID=$(PayPal__ClientId)
+        VITE_API_BASE_URL=/api
+        EOF
+        npm ci
+        npm run build
+      displayName: Build frontend
+
+    - script: |
+        rm -rf BeauNorthAPI/wwwroot
+        mkdir -p BeauNorthAPI/wwwroot
+        cp -R $(frontendDir)/dist/* BeauNorthAPI/wwwroot/
+      displayName: Copy frontend build into wwwroot
+
+    - script: |
+        dotnet restore $(apiProject)
+        dotnet publish $(apiProject) -c $(buildConfiguration) -o $(publishDir)
+      displayName: Publish API
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(publishDir)'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: '$(Build.ArtifactStagingDirectory)/site.zip'
+        replaceExistingArchive: true
+
+    - task: AzureAppServiceSettings@1
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        appName: '$(webAppName)'
+        resourceGroupName: '$(resourceGroupName)'
+        appSettings: |
+          [
+            { "name": "ASPNETCORE_ENVIRONMENT", "value": "Production", "slotSetting": false },
+            { "name": "ConnectionStrings__DefaultConnection", "value": "$(ConnectionStrings__DefaultConnection)", "slotSetting": false },
+            { "name": "Jwt__Key", "value": "$(Jwt__Key)", "slotSetting": false },
+            { "name": "Jwt__Issuer", "value": "$(Jwt__Issuer)", "slotSetting": false },
+            { "name": "Jwt__Audience", "value": "$(Jwt__Audience)", "slotSetting": false },
+            { "name": "Apliiq__ApiKey", "value": "$(Apliiq__ApiKey)", "slotSetting": false },
+            { "name": "Apliiq__SharedSecret", "value": "$(Apliiq__SharedSecret)", "slotSetting": false },
+            { "name": "Apliiq__BaseUrl", "value": "$(Apliiq__BaseUrl)", "slotSetting": false },
+            { "name": "Apliiq__LookupBySkuPathTemplate", "value": "$(Apliiq__LookupBySkuPathTemplate)", "slotSetting": false },
+            { "name": "PayPal__ClientId", "value": "$(PayPal__ClientId)", "slotSetting": false },
+            { "name": "PayPal__ClientSecret", "value": "$(PayPal__ClientSecret)", "slotSetting": false },
+            { "name": "PayPal__BaseUrl", "value": "$(PayPal__BaseUrl)", "slotSetting": false },
+            { "name": "Frontend__BaseUrl", "value": "$(Frontend__BaseUrl)", "slotSetting": false },
+            { "name": "Checkout__TaxRate", "value": "0.06", "slotSetting": false },
+            { "name": "Checkout__FlatShippingAmount", "value": "6.65", "slotSetting": false },
+            { "name": "Checkout__FreeShippingThreshold", "value": "500.00", "slotSetting": false },
+            { "name": "Checkout__AutoSubmitToApliiq", "value": "true", "slotSetting": false }
+          ]
+
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        appType: webAppLinux
+        appName: '$(webAppName)'
+        package: '$(Build.ArtifactStagingDirectory)/site.zip'
